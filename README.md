@@ -39,14 +39,14 @@
 
 #### Needed Configuration 
 `@FilePath: ~\Empyrion\Games\(savegamename)\Mods\EmpyrionScripting\CsCompilerConfiguration.json`
-- Add to "CustomAssemblies": "CustomDLLs\\EgsEsExtension.dll"
-- Add to "Usings": "EgsEsExtension", "EgsEsExtension.Scripts", "EgsEsExtension.Locales"
-- Add to "SymbolPermissions" -> "SaveGame": "EgsEsExtension", "EgsEsExtension.*"
+- Add to `CustomAssemblies`: "CustomDLLs\\EgsEsExtension.dll"
+- Add to `Usings`: "EgsEsExtension", "EgsEsExtension.Scripts", "EgsEsExtension.Locales"
+- Add to `SymbolPermissions` under `SaveGame`: "EgsEsExtension", "EgsEsExtension.*"
 
 #### Recommended Configuration
 `@FilePath: ~\Empyrion\Games\(savegamename)\Mods\EmpyrionScripting\Configuration.json`
-- Set SaveGameScriptsIntervallMS: 5000
-- Set EntityAccessMaxDistance: 100
+- Set `SaveGameScriptsIntervallMS` to "5000"
+- Set `EntityAccessMaxDistance` to "100"
 
 ## User Manual
 ### Ingame Script Function Activation
@@ -214,7 +214,7 @@ Just copy the [template table](#settings-Table-Copy-Template) to the editor pane
 ### Resetting Persistent Data
 Some script functions use persistent data storage to accomplish a report about missing(destroyed) devices. These persistent data will remain until the game/server restarts. Therefore if the displayed information on a lcd is outdated it could be necessary to reset these data manually (after a conscious redesign of a structure for example).
 
-Just add a lcd with the custom name `ResetData` and the structure the lcd is located on will be cleared from storage. Remind to rename/remove the lcd after the success message appears on these lcd to restore the normal script functions of the data-using script functions.
+Just add a lcd with the custom name `ResetData` and the structure the lcd is located on will be cleared from storage. Remind to rename/remove the lcd after the success message appears on these lcd to restore the normal functions of the data-using script functions.
 
 ### Item Recognition
 If a display outputs the message "unknown item" the desired item-id is propably missing in the `ItemStructureTree.ecf` file. In this case you could add the missing id from the display to one of existing groups in the file. (`,` seperated)
