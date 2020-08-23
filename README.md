@@ -150,7 +150,7 @@ Just copy the [template table](#settings-Table-Copy-Template) to the editor pane
     Container:                          // headline for list of containers
     OutputBox:myBox*                    // CustomName of the box(es) which should be purged by near bases (CpuCvrPrg) or from which items shall be used to refill near vessels(CpuCvrFll)
     InputBox:myInputBox                 // CustomName of the box(es) which should receive items purged from near vessels (CpuCvrPrg) or which items shall be transfered to from near base (CpuCvrFll), additional the source for sorting to categorized boxes (CpuCvrSrt)
-    SafetyStockSourceBox:myLittleBox    // CustomName of the box(es) from which the (CpuCvrSrt) collects the items to refill all SafetyStock containers
+    StockSourceBox:myLittleBox          // CustomName of the box(es) from which the (CpuCvrSrt) collects the items to refill all SafetyStock containers
     OreBox:myBox1                       // CustomName of the box(es) the items of group "ore" will be sorted to
     IngotBox:myBox1                     // CustomName of the box(es) the items of group "ingot" will be sorted to
     ComponentBox:myBox1                 // CustomName of the box(es) the items of group "component" will be sorted to
@@ -192,7 +192,7 @@ Just copy the [template table](#settings-Table-Copy-Template) to the editor pane
     Container:
     OutputBox:myBox*
     InputBox:myInputBox
-    SafetyStockSourceBox:myLittleBox
+    StockSourceBox:myLittleBox
     OreBox:myBox1
     IngotBox:myBox1
     ComponentBox:myBox1
