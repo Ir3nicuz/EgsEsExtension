@@ -25,20 +25,20 @@
 - Copy "EgsEsExtensionRun.cs" to ~\Empyrion\Games\(savegamename)\Mods\EmpyrionScripting\Scripts\
 - Copy "ItemStructureTree.ecf" to ~\Empyrion\Games\(savegamename)\Mods\EmpyrionScripting\
 
-#### needed configuration 
+#### Needed configuration 
 `@FilePath: ~\Empyrion\Games\(savegamename)\Mods\EmpyrionScripting\CsCompilerConfiguration.json`
 - Add to "CustomAssemblies": "CustomDLLs\\EgsEsExtension.dll"
 - Add to "Usings": "EgsEsExtension", "EgsEsExtension.Scripts", "EgsEsExtension.Locales"
 - Add to "SymbolPermissions" -> "SaveGame": "EgsEsExtension", "EgsEsExtension.*"
 
-#### recommended configuration
+#### Recommended configuration
 `@FilePath: ~\Empyrion\Games\(savegamename)\Mods\EmpyrionScripting\Configuration.json`
 - Set SaveGameScriptsIntervallMS: 5000
 - Set EntityAccessMaxDistance: 100
 
 ## User Manual
 ### Ingame script function activation
-The scripts simulate a "processing device" behaviour. To go live ingame each script function needs at least one lcd device per structur/vessel the script should work on. The name of the lcd device has to begin with the exact script-function name (see above). There can be more then one "cpu-lcd" "processing" each script function. Therefore the script function will NOT be executed multiple times. A second cpu-lcd is just a fallback device to keep the script active even if the first cpu-Lcd got for example destroyed. As long as one Lcd with the script function name is present on a structure the script stay active for this structure.
+The scripts simulate a "processing device" behaviour. To go live ingame each script function needs at least one lcd device per structur/vessel the script should work on. The name of the lcd device has to begin with the exact [script-function name](#script-functions-overview). There can be more then one "cpu-lcd" "processing" each script function. Therefore the script function will NOT be executed multiple times. A second cpu-lcd is just a fallback device to keep the script active even if the first cpu-Lcd got for example destroyed. As long as one Lcd with the script function name is present on a structure the script stay active for this structure.
     
 But a second "Cpu" device can be used to defined seperate/different drawing settings for different infomation displays. Add the optional seperator `:` after the script function name of the processing lcd device to have the possibility to define a name for information output displays. Each lcd device on the structure beginning with the so added name will get a continious information data stream and display it.
 
@@ -110,7 +110,7 @@ All script functions with item and cargo dependency rely on a "settings table" p
 
 The following table shows all settings the settings table can hold. Not all script functions needs all settings. The script function will tell if a expected setting (or the whole settings table lcd device) is missing. The format is one setting per line with `:` between setting name and setting value. Settings are grouped by a headline.
 
-Just copy the "template table" (further down) to the editor panel of the lcd and change the values depending to the structure/vessel. Wildcard `*` on container names is allowed to specify a collection of containers.
+Just copy the [template table](#settings-table-copy-template) to the editor panel of the lcd and change the values depending to the structure/vessel. Wildcard `*` on container names is allowed to specify a collection of containers.
 
 ###### Settings table description (not for copy)
 
