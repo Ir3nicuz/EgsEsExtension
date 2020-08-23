@@ -61,21 +61,21 @@ Certainly the script functions will even run without a information display. But 
 At least lcd expanding is possible be adding a number from 0 to 9 at the end of the name on information lcds. Based on the output line count parameter the script functions will first try to go ahead on a slave/follower display before wrap around to a second column on the first display. The lcd location is expected as top to bottom be increasing number.
 
 #### Example 1:
-Runs script function CpuCvrFll, draws infos on all lcd devices name begin with "BoxInfo1" with standard font size and no column wrap
+Runs script function `CpuCvrFll`, draws infos on all lcd devices name begin with "BoxInfo1" with standard font size and no column wrap
 
      - Lcd1 with CustomName: "CpuCvrFll:BoxInfo1"       -> Runs script function "CpuCvrFll"
      - Lcd2 with CustomName: "BoxInfo1"                 -> gets data from "CpuCvrFll:BoxInfo1"
      - Lcd3 with CustomName: "BoxInfo1"                 -> gets data from "CpuCvrFll:BoxInfo1"
 
 #### Example 2 (on the same structure):
-Runs no additional script(function), but draws infos on all lcd devices name begin with "BoxInfo2" with font size 6 and will wrap to a new column right next to the least after every 20 lines
+Runs no additional script function, but draws infos on all lcd devices name begin with "BoxInfo2" with font size 6 and will wrap to a new column right next to the least after every 20 lines
 
     - Lcd4 with CustomName: CpuCvrFll2:BoxInfo2:6:20    -> Runs script not twice, defines another display view
     - Lcd5 with CustomName: BoxInfo2                    -> gets data from "CpuBoxFill02:BoxInfo2:6:20"
     - Lcd6 with CustomName: BoxInfo2                    -> gets data from "CpuBoxFill02:BoxInfo2:6:20"
 
 #### Example 3 (on the same structure):
-Runs script CpuCvrSrt, draws infos on all lcd devices name begin with "SortInfo" with font size 4 and line/column wrap every 6 output lines
+Runs script `CpuCvrSrt`, draws infos on all lcd devices name begin with "SortInfo" with font size 4 and line/column wrap every 6 output lines
 
     - Lcd7 with CustomName: CpuCvrSrt:SortInfo:4:6      -> Runs script function "CpuCvrSrt"
     - Lcd8 with CustomName: SortInfo                    -> gets data from "CpuCvrSrt:SortInfo:4:6", 
@@ -101,9 +101,9 @@ Display with no connection to these script functions
     - Lcd13 with CustomName: SortInf                    -> gets no data from no script
 
 #### Example 5:
-The script function "CpuInfHll" has a additional fifth parameter (after a additional `:`) which shifts the offset from center position of the "cut view through the structure" for the deck view display. The font and linecount parameter can additionally be added or not. If not the standard values will be used. If the fifth parameter is missing the structure center will be displayed.
+The script function `CpuInfHll` has a additional fifth parameter (after a additional `:`) which shifts the offset from center position of the "cut view through the structure" for the deck view display. The font and linecount parameter can additionally be added or not. If not the standard values will be used. If the fifth parameter is missing the structure center will be displayed.
 
-    - Lcd14 with CustomName: CpuInfHll:SortInfo:::-3    -> Runs script function "CpuInfHll" and shifts cut location by -3 block positions
+    - Lcd14 with CustomName: CpuInfHll:SortInfo:::-3    -> Runs script function "CpuInfHll" and shifts view cut location by -3 block positions
     
 ### Language Setting
 The script functions are designed to work with different languages. Actually deDe and enGB is implemented. Select the desired language in the script file `EgsEsExtensionRun.cs`. All item interactions will be done with local namings and headlines/messages will change, too.
