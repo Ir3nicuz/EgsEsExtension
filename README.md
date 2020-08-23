@@ -52,7 +52,7 @@
 ### Ingame Script Function Activation
 The scripts simulate a "processing device" behaviour. To go live ingame each script function needs at least one lcd device per structur/vessel the script should work on. The name of the lcd device has to begin with the exact [script-function name](#script-functions-overview). There can be more then one "cpu-lcd" "processing" each script function. Therefore the script function will NOT be executed multiple times. A second cpu-lcd is just a fallback device to keep the script active even if the first cpu-Lcd got for example destroyed. As long as one Lcd with the script function name is present on a structure the script stay active for this structure.
     
-But a second "Cpu" device can be used to defined seperate/different drawing settings for different infomation displays. Add the optional seperator `:` after the script function name of the processing lcd device to have the possibility to define a name for information output displays. Each lcd device on the structure beginning with the so added name will get a continious information data stream and display it.
+But a second "Cpu" device can be used to defined seperate/different drawing settings for different information displays. Add the optional seperator `:` after the script function name of the processing lcd device to have the possibility to define a name for information output displays. Each lcd device on the structure beginning with the so added name will get a continious information data stream and display it.
 
 Add another optional `:` seperator to be able to define the font size for the before named displays. And add another optional `:` seperator to be able to define the output line count for the before named displays. If more lines still pending the script will wrap to a second column right next to the first column. So if the view is scattered just lower fontsize or raise line count to find the best fit for the display size/view. If no line count is defined all drawing items will be outputted in just one column as long as the display can draw it.
 
@@ -87,7 +87,7 @@ Runs script `CpuCvrSrt`, draws infos on all lcd devices name begin with "SortInf
     - Lcd10 with CustomName: SortInfo2                  -> gets data from "CpuCvrSrt:SortInfo:4:6", 
                                                            "2" at name-end means 2. display expansion, will get the third 6 lines
                                                            
-    - Lcd11 with CustomName: SortInf1                   -> gets data from "CpuCvrSrt:SortInfo:4:6", 
+    - Lcd11 with CustomName: SortInfo1                   -> gets data from "CpuCvrSrt:SortInfo:4:6", 
                                                            "1" at name-end means 1. display expansion, will get the second 6 lines
                                                            
     - Lcd12 with CustomName: SortInfo2                  -> gets data from "CpuCvrSrt:SortInfo:4:6", 
