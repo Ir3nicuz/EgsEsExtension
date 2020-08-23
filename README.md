@@ -1,7 +1,19 @@
 # EgsEsExtension
   A set of generic standard script functions for Empyrion Galactic Survival based on the EmpyrionScripting Mod by [ASTIC](https://github.com/GitHub-TC)
 
-## Script functions overview
+## Content
+- [Script Functions Overview](#script-functions-overview)
+- [Pictures and Demonstration](#pictures-and-demonstration)
+- [Configuration and Installation](#configuration-and-installation)
+- [User Manual](#user-manual)
+  - [Ingame Script Function Activation](#ingame-script-function-activation)
+  - [Language Setting](#language-setting)
+  - [Cargo Management Settings](#cargo-management-settings)
+  - [Resetting Persistent Data](#resetting-persistent-data)
+  - [Item Recognition](#item-recognition)
+  - [Device Recognition](#device-recognition)
+
+## Script Functions Overview
 - `CpuInfDev` draws device damage states
 - `CpuInfCpu` draws processor-lcd-device health information
 - `CpuInfHll` draws a structure damage overview scheme for topview and sideview
@@ -18,26 +30,26 @@
 ## Pictures and Demonstration
     Under construction
 
-## Configuration / Installation
-#### File preparation
+## Configuration and Installation
+#### File Preparation
 - Installing [EmpyrionScripting Mod](https://github.com/GitHub-TC/EmpyrionScripting)
 - Copy "EgsEsExtension.dll" to ~\Empyrion\Games\(savegamename)\Mods\EmpyrionScripting\CustomDLLs\
 - Copy "EgsEsExtensionRun.cs" to ~\Empyrion\Games\(savegamename)\Mods\EmpyrionScripting\Scripts\
 - Copy "ItemStructureTree.ecf" to ~\Empyrion\Games\(savegamename)\Mods\EmpyrionScripting\
 
-#### Needed configuration 
+#### Needed Configuration 
 `@FilePath: ~\Empyrion\Games\(savegamename)\Mods\EmpyrionScripting\CsCompilerConfiguration.json`
 - Add to "CustomAssemblies": "CustomDLLs\\EgsEsExtension.dll"
 - Add to "Usings": "EgsEsExtension", "EgsEsExtension.Scripts", "EgsEsExtension.Locales"
 - Add to "SymbolPermissions" -> "SaveGame": "EgsEsExtension", "EgsEsExtension.*"
 
-#### Recommended configuration
+#### Recommended Configuration
 `@FilePath: ~\Empyrion\Games\(savegamename)\Mods\EmpyrionScripting\Configuration.json`
 - Set SaveGameScriptsIntervallMS: 5000
 - Set EntityAccessMaxDistance: 100
 
 ## User Manual
-### Ingame script function activation
+### Ingame Script Function Activation
 The scripts simulate a "processing device" behaviour. To go live ingame each script function needs at least one lcd device per structur/vessel the script should work on. The name of the lcd device has to begin with the exact [script-function name](#script-functions-overview). There can be more then one "cpu-lcd" "processing" each script function. Therefore the script function will NOT be executed multiple times. A second cpu-lcd is just a fallback device to keep the script active even if the first cpu-Lcd got for example destroyed. As long as one Lcd with the script function name is present on a structure the script stay active for this structure.
     
 But a second "Cpu" device can be used to defined seperate/different drawing settings for different infomation displays. Add the optional seperator `:` after the script function name of the processing lcd device to have the possibility to define a name for information output displays. Each lcd device on the structure beginning with the so added name will get a continious information data stream and display it.
@@ -93,10 +105,10 @@ The script function "CpuInfHll" has a additional fifth parameter (after a additi
 
     - Lcd14 with CustomName: CpuInfHll:SortInfo:::-3    -> Runs script function "CpuInfHll" and shifts cut location by -3 block positions
     
-### Language setting
+### Language Setting
 The script functions are designed to work with different languages. Actually deDe and enGB is implemented. Select the desired language in the script file `EgsEsExtensionRun.cs`. All item interactions will be done with local namings and headlines/messages will change, too.
 
-### Cargo management settings
+### Cargo Management Settings
 The both structure comprehensive script functions `CpuCvrPrg` and `CpuCvrFll` use a logical state model to simulate realistic dock supervision. For example: 
 - If a vessel is offline a base will not recognize it (it not responses to radio request....)
 - The faction id must be equal (no goods for enemies.... :) )
@@ -110,9 +122,9 @@ All script functions with item and cargo dependency rely on a "settings table" p
 
 The following table shows all settings the settings table can hold. Not all script functions needs all settings. The script function will tell if a expected setting (or the whole settings table lcd device) is missing. The format is one setting per line with `:` between setting name and setting value. Settings are grouped by a headline.
 
-Just copy the [template table](#settings-table-copy-template) to the editor panel of the lcd and change the values depending to the structure/vessel. Wildcard `*` on container names is allowed to specify a collection of containers.
+Just copy the [template table](#settings-Table-Copy-Template) to the editor panel of the lcd and change the values depending to the structure/vessel. Wildcard `*` on container names is allowed to specify a collection of containers.
 
-###### Settings table description (not for copy)
+###### Settings Table Description (not for copy)
 
     Output:on                           // should the structure provide/output items? "on" = on, any other text = off
     Input:on                            // should the structure except/collect items? "on" = on, any other text = off
@@ -157,7 +169,7 @@ Just copy the [template table](#settings-table-copy-template) to the editor pane
     RefillsBox:myBox1                   // CustomName of the box(es) the items of group "refills" will be sorted to (only if not needed for tank refilling)
     TreasureBox:myVault                 // CustomName of the box(es) the items of group "treasure items" will be sorted to
 
-###### Settings table copy template
+###### Settings Table Copy-Template
 
     Output:on
     Input:on
@@ -199,13 +211,13 @@ Just copy the [template table](#settings-table-copy-template) to the editor pane
     RefillsBox:myBox1
     TreasureBox:myVault
 
-### Resetting persistent data
+### Resetting Persistent Data
 Some script functions use persistent data storage to accomplish a report about missing(destroyed) devices. These persistent data will remain until the game/server restarts. Therefore if the displayed information on a lcd is outdated it could be necessary to reset these data manually (after a conscious redesign of a structure for example).
 
 Just add a lcd with the custom name `ResetData` and the structure the lcd is located on will be cleared from storage. Remind to rename/remove the lcd after the success message appears on these lcd to restore the normal script functions of the data-using script functions.
 
-### Item recognition
+### Item Recognition
 If a display outputs the message "unknown item" the desired item-id is propably missing in the `ItemStructureTree.ecf` file. In this case you could add the missing id from the display to one of existing groups in the file. (`,` seperated)
     
-### Device recognition
+### Device Recognition
 Due to a special(silly :) ) eleon api interface behaviour the script functions with generic device supervision/recognition only works if the desired device(s) have a custom name set. So rename all devices from which you expect to be recognized. It is suitable to remove at least one letter from the default name in the controlpanel and hit enter to change "default name" to "custom name" and make the device "visible" to the Api.
