@@ -13,7 +13,6 @@ using System.Collections.Concurrent;
 
 /* ##### Changelog #####
     Remind to change version number in Settings class! :)
-
     2020-08-21: 1.0.0 -> Initial version
 */
 
