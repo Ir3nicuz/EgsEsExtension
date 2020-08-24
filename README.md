@@ -64,9 +64,9 @@ In the Steam workshop you can find a [Demo CV](https://steamcommunity.com/shared
 ## Configuration and Installation
 #### File Preparation
 - Installing [EmpyrionScripting Mod](https://github.com/GitHub-TC/EmpyrionScripting)
-- Copy "EgsEsExtension.dll" to ~\Empyrion\Games\(savegamename)\Mods\EmpyrionScripting\CustomDLLs\
-- Copy "EgsEsExtensionRun.cs" to ~\Empyrion\Games\(savegamename)\Mods\EmpyrionScripting\Scripts\
-- Copy "ItemStructureTree.ecf" to ~\Empyrion\Games\(savegamename)\Mods\EmpyrionScripting\
+- Copy "EgsEsExtension.dll" to ~\Empyrion\Games\\(savegamename)\Mods\EmpyrionScripting\CustomDLLs\
+- Copy "EgsEsExtensionRun.cs" to ~\Empyrion\Games\\(savegamename)\Mods\EmpyrionScripting\Scripts\
+- Copy "ItemStructureTree.ecf" to ~\Empyrion\Games\\(savegamename)\Mods\EmpyrionScripting\
 
 #### Needed Configuration 
 `@FilePath: ~\Empyrion\Games\(savegamename)\Mods\EmpyrionScripting\CsCompilerConfiguration.json`
