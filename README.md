@@ -28,7 +28,7 @@
 - `CpuInfL` draws information overview for bigger displays
 
 ## Pictures and Demonstration
-    Under construction
+In the Steam workshop you can find a [Demo CV](https://steamcommunity.com/sharedfiles/filedetails/?id=2207655758)
 
 ## Configuration and Installation
 #### File Preparation
