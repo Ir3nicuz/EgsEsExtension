@@ -48,7 +48,7 @@ In the Steam workshop you can find a [Demo CV](https://steamcommunity.com/shared
   <tr>
     <td>
       <figure>
-        <figcaption>Weapon Overview CpuInfHll:</figcaption>
+        <figcaption>Structure Damage View CpuInfHll:</figcaption>
         <img src="images/CpuInfHll.png" title="Structure Damage View CpuInfHll" width="400" height="400"/>
       </figure>
     </td>
