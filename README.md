@@ -28,7 +28,38 @@
 - `CpuInfL` draws information overview for bigger displays
 
 ## Pictures and Demonstration
-In the Steam workshop you can find a [Demo CV](https://steamcommunity.com/sharedfiles/filedetails/?id=2207655758)
+In the Steam workshop you can find a [Demo CV](https://steamcommunity.com/sharedfiles/filedetails/?id=2207655758) with this functions amongst other:
+
+<table>
+  <tr>
+    <td>
+      <figure>
+        <figcaption>Compact Overview CpuInfS:</figcaption>
+        <img src="images/CpuInfS.png" title="Compact Overview CpuInfS" width="400" height="400"/>
+      </figure>
+    </td>
+    <td>
+      <figure>
+        <figcaption>Weapon Overview CpuInfWpn:</figcaption>
+        <img src="images/CpuInfWpn.png" title="Weapon Overview CpuInfWpn" width="400" height="400"/>
+      </figure>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <figure>
+        <figcaption>Weapon Overview CpuInfHll:</figcaption>
+        <img src="images/CpuInfHll.png" title="Structure Damage View CpuInfHll" width="400" height="400"/>
+      </figure>
+    </td>
+    <td>
+      <figure>
+        <figcaption>Container Overview CpuInfBox:</figcaption>
+        <img src="images/CpuInfBox.png" title="Container Overview CpuInfBox" width="400" height="400"/>
+      </figure>
+    </td>
+  </tr>
+</table>
 
 ## Configuration and Installation
 #### File Preparation
