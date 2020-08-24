@@ -14,6 +14,10 @@ using System.Collections.Concurrent;
 /* ##### Changelog #####
     Remind to change version number in Settings class! :)
     2020-08-21: 1.0.0 -> Initial version
+    2020-08-24: 1.0.1 -> fixed: CpuInfHll memory access reduced
+    2020-08-24: 1.0.2 -> fixed: headline double output bug
+    2020-08-24: 1.0.3 -> fixed: CpuInfBox ignores SafetyStock containers
+    2020-08-24: 1.0.4 -> adding: display of version number
 */
 
 namespace EgsEsExtension
@@ -76,14 +80,15 @@ namespace EgsEsExtension
                 // prepare output for debugging
                 CsRoot.I18nDefaultLanguage = Locales.GetValue(lng, Locales.Key.ItemLanguage);
                 DisplayViewManager displayManager = new DisplayViewManager(CsRoot, E, lng);
-                displayManager.AddDisplays(sProcessorName, DisplayViewManager.DisplayTypes.eLog, CsRoot.GetDevices<ILcd>(deviceProcessors));
+                displayManager.AddLogDisplays(sProcessorName, Settings.Version, CsRoot.GetDevices<ILcd>(deviceProcessors));
                 try
                 {
+                    // add Headline
+                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_StatCpu));
                     // Settings load
                     deviceProcessors.ForEach(processor =>
                     {
-                        displayManager.AddDisplays(Locales.GetValue(lng, Locales.Key.Headline_Main_StatCpu), DisplayViewManager.DisplayTypes.eInfo,
-                            GenericMethods.SplitArguments(processor.CustomName));
+                        displayManager.AddInfoDisplays(GenericMethods.SplitArguments(processor.CustomName));
                     });
                     displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedSettingsReadIn)));
                     // gather attached and valid cpu devices
@@ -203,14 +208,15 @@ namespace EgsEsExtension
                 // prepare output for debugging
                 CsRoot.I18nDefaultLanguage = Locales.GetValue(lng, Locales.Key.ItemLanguage);
                 DisplayViewManager displayManager = new DisplayViewManager(CsRoot, E, lng);
-                displayManager.AddDisplays(sProcessorName, DisplayViewManager.DisplayTypes.eLog, CsRoot.GetDevices<ILcd>(deviceProcessors));
+                displayManager.AddLogDisplays(sProcessorName, Settings.Version, CsRoot.GetDevices<ILcd>(deviceProcessors));
                 try
                 {
+                    // add Headline
+                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_StatDev));
                     // Settings load
                     deviceProcessors.ForEach(processor =>
                     {
-                        displayManager.AddDisplays(Locales.GetValue(lng, Locales.Key.Headline_Main_StatDev), DisplayViewManager.DisplayTypes.eInfo,
-                            GenericMethods.SplitArguments(processor.CustomName));
+                        displayManager.AddInfoDisplays(GenericMethods.SplitArguments(processor.CustomName));
                     });
                     displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedSettingsReadIn)));
                     // gather attached devices
@@ -300,14 +306,15 @@ namespace EgsEsExtension
                 // prepare output for debugging
                 CsRoot.I18nDefaultLanguage = Locales.GetValue(lng, Locales.Key.ItemLanguage);
                 DisplayViewManager displayManager = new DisplayViewManager(CsRoot, E, lng);
-                displayManager.AddDisplays(sProcessorName, DisplayViewManager.DisplayTypes.eLog, CsRoot.GetDevices<ILcd>(deviceProcessors));
+                displayManager.AddLogDisplays(sProcessorName, Settings.Version, CsRoot.GetDevices<ILcd>(deviceProcessors));
                 try
                 {
+                    // add Headline
+                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_StatBox));
                     // Settings load
                     deviceProcessors.ForEach(processor =>
                     {
-                        displayManager.AddDisplays(Locales.GetValue(lng, Locales.Key.Headline_Main_StatBox), DisplayViewManager.DisplayTypes.eInfo,
-                            GenericMethods.SplitArguments(processor.CustomName));
+                        displayManager.AddInfoDisplays(GenericMethods.SplitArguments(processor.CustomName));
                     });
                     SettingsDataManager.SettingsDataManager settings = new SettingsDataManager.SettingsDataManager(CsRoot, E, lng);
                     if (settings.ReadInSettingsTable(Locales.GetValue(lng, Locales.Key.SettingsTableDeviceName)))
@@ -315,6 +322,7 @@ namespace EgsEsExtension
                         displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedSettingsReadIn)));
                         // compute cargo box level bars
                         List<KeyValuePair<String, String>> containerList = settings.GetSettingsTable<String>(CargoManagementTags.ContainerTagsHeadlineTag);
+                        containerList.AddRange(settings.GetSafetyStockContainers());
                         double dLevel;
                         containerList.GroupBy(grp => grp.Value).Select(grp => grp.First()).ForEach(container =>
                         {
@@ -372,9 +380,11 @@ namespace EgsEsExtension
                 // prepare output for debugging
                 CsRoot.I18nDefaultLanguage = Locales.GetValue(lng, Locales.Key.ItemLanguage);
                 DisplayViewManager displayManager = new DisplayViewManager(CsRoot, E, lng);
-                displayManager.AddDisplays(sProcessorName, DisplayViewManager.DisplayTypes.eLog, CsRoot.GetDevices<ILcd>(deviceProcessors));
+                displayManager.AddLogDisplays(sProcessorName, Settings.Version, CsRoot.GetDevices<ILcd>(deviceProcessors));
                 try
                 {
+                    // add Headline
+                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_StatWpn));
                     // Settings load
                     String sItemStructureFile = Settings.GetValue<String>(Settings.Key.FileName_ItemStructureTree);
                     if (!ItemGroups.Init(root, sItemStructureFile)) { 
@@ -382,8 +392,7 @@ namespace EgsEsExtension
                     }
                     deviceProcessors.ForEach(processor =>
                     {
-                        displayManager.AddDisplays(Locales.GetValue(lng, Locales.Key.Headline_Main_StatWpn), DisplayViewManager.DisplayTypes.eInfo,
-                            GenericMethods.SplitArguments(processor.CustomName));
+                        displayManager.AddInfoDisplays(GenericMethods.SplitArguments(processor.CustomName));
                     });
                     displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedSettingsReadIn)));
                     // gather weapon devices
@@ -441,9 +450,11 @@ namespace EgsEsExtension
                 // prepare output for debugging
                 CsRoot.I18nDefaultLanguage = Locales.GetValue(lng, Locales.Key.ItemLanguage);
                 DisplayViewManager displayManager = new DisplayViewManager(CsRoot, E, lng);
-                displayManager.AddDisplays(sProcessorName, DisplayViewManager.DisplayTypes.eLog, CsRoot.GetDevices<ILcd>(deviceProcessors));
+                displayManager.AddLogDisplays(sProcessorName, Settings.Version, CsRoot.GetDevices<ILcd>(deviceProcessors));
                 try
                 {
+                    // add Headline
+                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_StatThr));
                     // Settings load
                     String sItemStructureFile = Settings.GetValue<String>(Settings.Key.FileName_ItemStructureTree);
                     if (!ItemGroups.Init(root, sItemStructureFile))
@@ -452,8 +463,7 @@ namespace EgsEsExtension
                     }
                     deviceProcessors.ForEach(processor =>
                     {
-                        displayManager.AddDisplays(Locales.GetValue(lng, Locales.Key.Headline_Main_StatThr), DisplayViewManager.DisplayTypes.eInfo,
-                            GenericMethods.SplitArguments(processor.CustomName));
+                        displayManager.AddInfoDisplays(GenericMethods.SplitArguments(processor.CustomName));
                     });
                     displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedSettingsReadIn)));
                     // gather weapon devices
@@ -536,14 +546,15 @@ namespace EgsEsExtension
                 // prepare output for debugging
                 CsRoot.I18nDefaultLanguage = Locales.GetValue(lng, Locales.Key.ItemLanguage);
                 DisplayViewManager displayManager = new DisplayViewManager(CsRoot, E, lng);
-                displayManager.AddDisplays(sProcessorName, DisplayViewManager.DisplayTypes.eLog, CsRoot.GetDevices<ILcd>(deviceProcessors));
+                displayManager.AddLogDisplays(sProcessorName, Settings.Version, CsRoot.GetDevices<ILcd>(deviceProcessors));
                 try
                 {
+                    // add Headline
+                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_StatDock));
                     // Settings load
                     deviceProcessors.ForEach(processor =>
                     {
-                        displayManager.AddDisplays(Locales.GetValue(lng, Locales.Key.Headline_Main_StatDock), DisplayViewManager.DisplayTypes.eInfo,
-                            GenericMethods.SplitArguments(processor.CustomName));
+                        displayManager.AddInfoDisplays(GenericMethods.SplitArguments(processor.CustomName));
                     });
                     displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedSettingsReadIn)));
                     // gather vessel data
@@ -622,28 +633,29 @@ namespace EgsEsExtension
                 ICsScriptFunctions CsRoot = root.CsRoot;
                 IEntityData E = root.E;
                 // without structure powered and without "processing device" the scrip should "sleep"
-                RegisteredStructureDataSet storedStructureDate = PersistentDataStorage.GetRegisteredStructureDataSet(E);
-                if (storedStructureDate.SleepTicksCounter < iTicksToSleep) { storedStructureDate.SleepTicksCounter++; return; }
-                storedStructureDate.SleepTicksCounter = 0;
+                RegisteredStructureDataSet storedStructureData = PersistentDataStorage.GetRegisteredStructureDataSet(E);
+                if (storedStructureData.SleepTicksCounter < iTicksToSleep) { storedStructureData.SleepTicksCounter++; return; }
+                storedStructureData.SleepTicksCounter = 0;
                 IBlockData[] deviceProcessors = CsRoot.Devices(E.S, sProcessorName);
                 if (!E.S.IsPowerd || deviceProcessors == null || deviceProcessors.Count() < 1) { return; }
                 // prepare output for debugging
                 CsRoot.I18nDefaultLanguage = Locales.GetValue(lng, Locales.Key.ItemLanguage);
                 DisplayViewManager displayManager = new DisplayViewManager(CsRoot, E, lng);
-                displayManager.AddDisplays(sProcessorName, DisplayViewManager.DisplayTypes.eLog, CsRoot.GetDevices<ILcd>(deviceProcessors));
+                displayManager.AddLogDisplays(sProcessorName, Settings.Version, CsRoot.GetDevices<ILcd>(deviceProcessors));
                 try
                 {
+                    // add Headline
+                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_StatHll));
                     // Settings load
                     deviceProcessors.ForEach(processor =>
                     {
-                        displayManager.AddDisplays(Locales.GetValue(lng, Locales.Key.Headline_Main_StatHll), DisplayViewManager.DisplayTypes.eInfo,
-                            GenericMethods.SplitArguments(processor.CustomName));
+                        displayManager.AddInfoDisplays(GenericMethods.SplitArguments(processor.CustomName));
                     });
                     displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedSettingsReadIn)));
                     // load or generate data array
                     VectorInt3 structMin = E.S.MinPos;
                     VectorInt3 structMax = E.S.MaxPos;
-                    double?[][][] dStructDamageData = storedStructureDate.StructDamageData;
+                    double?[][][] dStructDamageData = storedStructureData.StructDamageData;
                     if (dStructDamageData == null)
                     {
                         // generate data array size
@@ -672,9 +684,10 @@ namespace EgsEsExtension
                                 }
                             }
                         }
-                        storedStructureDate.StructDamageData = dStructDamageData;
+                        storedStructureData.StructDamageData = dStructDamageData;
                     }
                     // refresh structure damage data in array
+                    bool bSomeStructChanges = false;
                     for (int iPosX = 0; iPosX < dStructDamageData.Length; iPosX++)
                     {
                         for (int iPosY = 0; iPosY < dStructDamageData[0].Length; iPosY++)
@@ -686,15 +699,17 @@ namespace EgsEsExtension
                                 if (block != null && block.Id > 0)
                                 {
                                     dStructDamageData[iPosX][iPosY][iPosZ] = (double)block.Damage / block.HitPoints;
-                                    if (dValue.HasValue) { storedStructureDate.StructDamageData = dStructDamageData; }
+                                    if (!dValue.HasValue) { bSomeStructChanges = true; }
                                 }
                                 else if (dValue.HasValue && dValue.Value < 1.0)
                                 {
                                     dStructDamageData[iPosX][iPosY][iPosZ] = 1.0;
+                                    bSomeStructChanges = true;
                                 }
                             }
                         }
                     }
+                    if (bSomeStructChanges) { storedStructureData.StructDamageData = dStructDamageData; }
                     displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedDataReadIn)));
                     // convert damaga data to geometric views
                     displayManager.AddStructureView(dStructDamageData, DisplayViewManager.StructureViews.eTopView);
@@ -735,9 +750,11 @@ namespace EgsEsExtension
                 // prepare output for debugging
                 CsRoot.I18nDefaultLanguage = Locales.GetValue(lng, Locales.Key.ItemLanguage);
                 DisplayViewManager displayManager = new DisplayViewManager(CsRoot, E, lng);
-                displayManager.AddDisplays(sProcessorName, DisplayViewManager.DisplayTypes.eLog, CsRoot.GetDevices<ILcd>(deviceProcessors));
+                displayManager.AddLogDisplays(sProcessorName, Settings.Version, CsRoot.GetDevices<ILcd>(deviceProcessors));
                 try
                 {
+                    // add Headline
+                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_StatusL));
                     // Settings load
                     String sItemStructureFile = Settings.GetValue<String>(Settings.Key.FileName_ItemStructureTree);
                     if (!ItemGroups.Init(root, sItemStructureFile))
@@ -746,8 +763,7 @@ namespace EgsEsExtension
                     }
                     deviceProcessors.ForEach(processor =>
                     {
-                        displayManager.AddDisplays(Locales.GetValue(lng, Locales.Key.Headline_Main_StatusL), DisplayViewManager.DisplayTypes.eInfo,
-                            GenericMethods.SplitArguments(processor.CustomName));
+                        displayManager.AddInfoDisplays(GenericMethods.SplitArguments(processor.CustomName));
                     });
                     SettingsDataManager.SettingsDataManager settings = new SettingsDataManager.SettingsDataManager(CsRoot, E, lng);
                     if (settings.ReadInSettingsTable(Locales.GetValue(lng, Locales.Key.SettingsTableDeviceName)))
@@ -800,7 +816,7 @@ namespace EgsEsExtension
                         displayManager.AddDeviceStatus(
                             Locales.GetValue(lng, Locales.Key.Headline_StatusL_ThrusterState),
                             Locales.GetValue(lng, Locales.Key.Symbol_StatusL_ThrusterState),
-                            Locales.GetValue(lng, Locales.Key.Text_ErrorMessage_StatusL_ThrusterMissing), EntityType.BA, true,
+                            Locales.GetValue(lng, Locales.Key.Text_ErrorMessage_StatusL_ThrusterMissing), EntityType.BA, false,
                             ItemGroups.ThrustersS, ItemGroups.ThrustersL);
                         // compute level bars
                         double dLevel;
@@ -883,14 +899,15 @@ namespace EgsEsExtension
                 // prepare output for debugging
                 CsRoot.I18nDefaultLanguage = Locales.GetValue(lng, Locales.Key.ItemLanguage);
                 DisplayViewManager displayManager = new DisplayViewManager(CsRoot, E, lng);
-                displayManager.AddDisplays(sProcessorName, DisplayViewManager.DisplayTypes.eLog, CsRoot.GetDevices<ILcd>(deviceProcessors));
+                displayManager.AddLogDisplays(sProcessorName, Settings.Version, CsRoot.GetDevices<ILcd>(deviceProcessors));
                 try
                 {
+                    // add Headline
+                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_StatusS));
                     // Settings load
                     deviceProcessors.ForEach(processor =>
                     {
-                        displayManager.AddDisplays(Locales.GetValue(lng, Locales.Key.Headline_Main_StatusS), DisplayViewManager.DisplayTypes.eInfo,
-                            GenericMethods.SplitArguments(processor.CustomName));
+                        displayManager.AddInfoDisplays(GenericMethods.SplitArguments(processor.CustomName));
                     });
                     SettingsDataManager.SettingsDataManager settings = new SettingsDataManager.SettingsDataManager(CsRoot, E, lng);
                     if (settings.ReadInSettingsTable(Locales.GetValue(lng, Locales.Key.SettingsTableDeviceName)))
@@ -986,9 +1003,11 @@ namespace EgsEsExtension
                 // prepare output for debugging
                 CsRoot.I18nDefaultLanguage = Locales.GetValue(lng, Locales.Key.ItemLanguage);
                 DisplayViewManager displayManager = new DisplayViewManager(CsRoot, E, lng);
-                displayManager.AddDisplays(sProcessorName, DisplayViewManager.DisplayTypes.eLog, CsRoot.GetDevices<ILcd>(deviceProcessors));
+                displayManager.AddLogDisplays(sProcessorName, Settings.Version, CsRoot.GetDevices<ILcd>(deviceProcessors));
                 try
                 {
+                    // add Headline
+                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_CargoSorter));
                     // Settings load
                     String sItemStructureFile = Settings.GetValue<String>(Settings.Key.FileName_ItemStructureTree);
                     if (!ItemGroups.Init(root, sItemStructureFile))
@@ -997,8 +1016,7 @@ namespace EgsEsExtension
                     }
                     deviceProcessors.ForEach(processor =>
                     {
-                        displayManager.AddDisplays(Locales.GetValue(lng, Locales.Key.Headline_Main_CargoSorter),
-                            DisplayViewManager.DisplayTypes.eInfo, GenericMethods.SplitArguments(processor.CustomName));
+                        displayManager.AddInfoDisplays(GenericMethods.SplitArguments(processor.CustomName));
                     });
                     SettingsDataManager.SettingsDataManager settings = new SettingsDataManager.SettingsDataManager(CsRoot, E, lng);
                     if (settings.ReadInSettingsTable(Locales.GetValue(lng, Locales.Key.SettingsTableDeviceName)))
@@ -1020,19 +1038,19 @@ namespace EgsEsExtension
                         String sSourceBox = String.Join(sBoxSeperator,
                             settings.GetParameterValue<String>(CargoManagementTags.ContainerTag_Input),
                             settings.GetParameterValue<String>(CargoManagementTags.ContainerTag_SafetySource));
-                        settings.CompleteSettingsTable.Where(entry => entry.Key.Contains(CargoManagementTags.SafetyStockTag))?.ForEach(entry =>
+                        settings.GetSafetyStockContainers().ForEach(container =>
                         {
-                            settings.GetSettingsTable<int>(entry.Key).ForEach(item =>
+                            settings.GetSettingsTable<int>(container.Key).ForEach(item =>
                             {
                                 if (iItemCount < iItemMovedPerTick)
                                 {
-                                    if (GenericMethods.IntelligentItemMove(CsRoot, E, E, sSourceBox, entry.Value, item) > 0)
+                                    if (GenericMethods.IntelligentItemMove(CsRoot, E, E, sSourceBox, container.Value, item) > 0)
                                     {
                                         iItemCount++;
                                     }
                                 }
                             });
-                            displayManager.AddLogEntry(String.Format("- {0}: {1}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedSafetyStockRefill), entry.Value));
+                            displayManager.AddLogEntry(String.Format("- {0}: {1}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedSafetyStockRefill), container.Value));
                         });
                         // inputbox cargo sorting
                         String sTargetBoxName;
@@ -1113,9 +1131,11 @@ namespace EgsEsExtension
                 // prepare output for debugging
                 CsRoot.I18nDefaultLanguage = Locales.GetValue(lng, Locales.Key.ItemLanguage);
                 DisplayViewManager displayManager = new DisplayViewManager(CsRoot, E, lng);
-                displayManager.AddDisplays(sProcessorName, DisplayViewManager.DisplayTypes.eLog, CsRoot.GetDevices<ILcd>(deviceProcessors));
+                displayManager.AddLogDisplays(sProcessorName, Settings.Version, CsRoot.GetDevices<ILcd>(deviceProcessors));
                 try
                 {
+                    // add Headline
+                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_BoxFill));
                     // load setting
                     String sItemStructureFile = Settings.GetValue<String>(Settings.Key.FileName_ItemStructureTree);
                     if (!ItemGroups.Init(root, sItemStructureFile))
@@ -1124,8 +1144,7 @@ namespace EgsEsExtension
                     }
                     deviceProcessors.ForEach(processor =>
                     {
-                        displayManager.AddDisplays(Locales.GetValue(lng, Locales.Key.Headline_Main_BoxFill), DisplayViewManager.DisplayTypes.eInfo,
-                            GenericMethods.SplitArguments(processor.CustomName));
+                        displayManager.AddInfoDisplays(GenericMethods.SplitArguments(processor.CustomName));
                     });
                     // Service manager for vessels and data
                     CargoTransferManager cargoManager = new CargoTransferManager(CsRoot, E, lng);
@@ -1253,7 +1272,7 @@ namespace EgsEsExtension
                     }
                     else
                     {
-                        displayManager.AddLogEntry(sError);
+                        displayManager.AddLogEntry(String.Format("- {0}", sError));
                         displayManager.AddPlainText(sError);
                     }
                     // draw info panel
@@ -1288,9 +1307,11 @@ namespace EgsEsExtension
                 // prepare output for debugging
                 CsRoot.I18nDefaultLanguage = Locales.GetValue(lng, Locales.Key.ItemLanguage);
                 DisplayViewManager displayManager = new DisplayViewManager(CsRoot, E, lng);
-                displayManager.AddDisplays(sProcessorName, DisplayViewManager.DisplayTypes.eLog, CsRoot.GetDevices<ILcd>(deviceProcessors));
+                displayManager.AddLogDisplays(sProcessorName, Settings.Version, CsRoot.GetDevices<ILcd>(deviceProcessors));
                 try
                 {
+                    // add Headline
+                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_BoxPurge));
                     // laod setting
                     String sItemStructureFile = Settings.GetValue<String>(Settings.Key.FileName_ItemStructureTree);
                     if (!ItemGroups.Init(root, sItemStructureFile))
@@ -1299,8 +1320,7 @@ namespace EgsEsExtension
                     }
                     deviceProcessors.ForEach(processor =>
                     {
-                        displayManager.AddDisplays(Locales.GetValue(lng, Locales.Key.Headline_Main_BoxPurge), DisplayViewManager.DisplayTypes.eInfo,
-                            GenericMethods.SplitArguments(processor.CustomName));
+                        displayManager.AddInfoDisplays(GenericMethods.SplitArguments(processor.CustomName));
                     });
                     // Service manager for vessels and data
                     CargoTransferManager cargoManager = new CargoTransferManager(CsRoot, E, lng);
@@ -1387,7 +1407,7 @@ namespace EgsEsExtension
                     }
                     else
                     {
-                        displayManager.AddLogEntry(sError);
+                        displayManager.AddLogEntry(String.Format("- {0}", sError));
                         displayManager.AddPlainText(sError);
                     }
                     // draw info panel
@@ -1415,6 +1435,7 @@ namespace EgsEsExtension
         using DisplayViewManager = DisplayViewManager.DisplayViewManager;
         using Locales = Locales.Locales;
         using GenericMethods = GenericMethods.GenericMethods;
+        using Settings = Settings.Settings;
         public static class PersistentDataStorage
         {
             private static readonly ConcurrentDictionary<int, VesselDataStorage> registeredVesselsList = new ConcurrentDictionary<int, VesselDataStorage>();
@@ -1438,7 +1459,7 @@ namespace EgsEsExtension
                 if (E.S.IsPowerd && deviceProcessors != null && deviceProcessors.Count() > 0)
                 {
                     DisplayViewManager displayManager = new DisplayViewManager(CsRoot, E, lng);
-                    displayManager.AddDisplays(sProcessorName, DisplayViewManager.DisplayTypes.eLog, CsRoot.GetDevices<ILcd>(deviceProcessors));
+                    displayManager.AddLogDisplays(sProcessorName, Settings.Version, CsRoot.GetDevices<ILcd>(deviceProcessors));
                     try
                     {
                         registeredVesselsList.TryRemove(E.Id, out _);
@@ -1836,6 +1857,15 @@ namespace EgsEsExtension
             {
                 return unknownItemsTable;
             }
+            public List<KeyValuePair<String, String>> GetSafetyStockContainers()
+            {
+                List<KeyValuePair<String, String>> containerList = new List<KeyValuePair<String, String>>();
+                CompleteSettingsTable.Where(entry => entry.Key.Contains(CargoManagementTags.SafetyStockTag))?.ForEach(entry =>
+                {
+                    containerList.Add(entry);
+                });
+                return containerList;
+            }
         }
         public static class CargoManagementTags
         {
@@ -2209,6 +2239,7 @@ namespace EgsEsExtension
     namespace GenericMethods
     {
         using ItemGroups = ItemGroups.ItemGroups;
+        using DisplayViewManager = DisplayViewManager.DisplayViewManager;
         public static class GenericMethods
         {
             private const Char cArgumentSeperator = ':';
@@ -2300,6 +2331,12 @@ namespace EgsEsExtension
             {
                 return String.Format("{0}Exception:{0}Msg: {1}{0}Inner: {2}{0}Source: {3}{0}Target: {4}{0}Data: {5}{0}Stack: {6}", 
                     Environment.NewLine, e.Message, e.InnerException, e.Source, e.TargetSite, e.Data, e.StackTrace);
+            }
+            public static void SetFormattedHeadline(DisplayViewManager displayManager, String sHeadline)
+            {
+                displayManager.AddHeadline(String.Format("{0}:" , sHeadline));
+                displayManager.AddHeadline(String.Format("Update: {0}", DateTime.Now));
+                displayManager.AddHeadline("");
             }
         }
     }
@@ -2448,7 +2485,7 @@ namespace EgsEsExtension
                 );
                 infoElementList.Add(element);
             }
-            public void AddDisplays(String sHeadline, DisplayTypes type, String[] sArgs)
+            public void AddInfoDisplays(String[] sArgs)
             {
                 Dictionary<int, List<ILcd>> LCDDisplayTable = new Dictionary<int, List<ILcd>>();
                 int? iFontSize = null;
@@ -2469,32 +2506,15 @@ namespace EgsEsExtension
                 if (sArgs.Count() >= 3 && int.TryParse(sArgs[2], out int iTempSize) && iTempSize > 0) { iFontSize = iTempSize; }
                 if (sArgs.Count() >= 4 && int.TryParse(sArgs[3], out int iTempCount) && iTempCount > 0) { iLineCount = iTempCount; }
                 if (sArgs.Count() >= 5 && int.TryParse(sArgs[4], out int iTempViewOffset)) { iViewOffset = iTempViewOffset; }
-                AddDisplays(sHeadline, type, LCDDisplayTable, iFontSize, iLineCount, iViewOffset);
+                DisplaySet newLcdSet = new DisplaySet(LCDDisplayTable, iDefaultInfoFontSize, iFontSize, iLineCount, iViewOffset);
+                infoDisplaysList.Add(newLcdSet);
             }
-            public void AddDisplays(String sHeadline, DisplayTypes type, ILcd[] lcds)
+            public void AddLogDisplays(String sHeadline, String sVersion, ILcd[] lcds)
             {
                 Dictionary<int, List<ILcd>> LCDDisplayTable = new Dictionary<int, List<ILcd>> { { 0, lcds.ToList() } };
-                AddDisplays(sHeadline, type, LCDDisplayTable, null, null, null);
-            }
-            private void AddDisplays(String sHeadline, DisplayTypes type, Dictionary<int, List<ILcd>> LCDDisplayTable, int? iFontSize, int? iLineCount, int? iViewOffset)
-            {
-                DisplaySet newLcdSet;
-                switch (type)
-                {
-                    case DisplayTypes.eLog:
-                        newLcdSet = new DisplaySet(LCDDisplayTable, type, iFontSize, iLineCount, iViewOffset);
-                        logDisplaysList.Add(newLcdSet);
-                        SetDisplayText(newLcdSet, String.Format("{0} Log:{1}Update: {2}{1}", sHeadline, Environment.NewLine, DateTime.Now));
-                        break;
-                    case DisplayTypes.eInfo:
-                        newLcdSet = new DisplaySet(LCDDisplayTable, type, iFontSize, iLineCount, iViewOffset);
-                        infoDisplaysList.Add(newLcdSet);
-                        AddHeadline(sHeadline + ":");
-                        AddHeadline("Update: " + DateTime.Now.ToString());
-                        AddHeadline("");
-                        break;
-                    default: break;
-                }
+                DisplaySet newLcdSet = new DisplaySet(LCDDisplayTable, iDefaultLogFontSize, null, null, null);
+                logDisplaysList.Add(newLcdSet);
+                SetDisplayText(newLcdSet, String.Format("{0} v{3} Log:{1}Update: {2}{1}", sHeadline, Environment.NewLine, DateTime.Now, sVersion));
             }
             public void AddLogEntry(String sEntry)
             {
@@ -2834,23 +2854,14 @@ namespace EgsEsExtension
             private class DisplaySet
             {
                 public Dictionary<int, List<ILcd>> LCDDisplayTable { get; }
-                public DisplayTypes DisplayType { get; }
                 public int FontSize { get; }
                 public int LineCount { get; }
                 public int StructureViewOffset { get; }
-                public DisplaySet(Dictionary<int, List<ILcd>> displayTable, DisplayTypes dispType, int? iFontSize, int? iLineCount, int? iStruvctureViewOffset)
+                public DisplaySet(Dictionary<int, List<ILcd>> displayTable, int iDefaultFontSize, int? iFontSize, int? iLineCount, int? iStruvctureViewOffset)
                 {
                     LCDDisplayTable = displayTable;
-                    DisplayType = dispType;
                     if (iFontSize.HasValue) { FontSize = iFontSize.Value; }
-                    else { 
-                        switch (dispType)
-                        {
-                            case DisplayTypes.eLog: FontSize = iDefaultLogFontSize; break;
-                            case DisplayTypes.eInfo:
-                            default: FontSize = iDefaultInfoFontSize; break;
-                        }
-                    }
+                    else { FontSize = iDefaultFontSize; }
                     if (iLineCount.HasValue) { LineCount = iLineCount.Value; } 
                     else { LineCount = int.MaxValue; }
                     if (iStruvctureViewOffset.HasValue) { StructureViewOffset = iStruvctureViewOffset.Value; }
@@ -2879,11 +2890,6 @@ namespace EgsEsExtension
                 {
                     ActiveCount = iActiveCount;
                 }
-            }
-            public enum DisplayTypes
-            {
-                eLog,
-                eInfo
             }
             private enum ElementTypes
             {
@@ -3534,8 +3540,8 @@ namespace EgsEsExtension
     {
         public static class Settings
         {
-            private static readonly String Version = "1.0.0";
-            private static readonly String Author = "Preston";
+            public static readonly String Version = "1.0.4";
+            public static readonly String Author = "Preston";
 
             public enum Key
             {
