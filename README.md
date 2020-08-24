@@ -118,7 +118,7 @@ Runs script `CpuCvrSrt`, draws infos on all lcd devices name begin with "SortInf
     - Lcd10 with CustomName: SortInfo2                  -> gets data from "CpuCvrSrt:SortInfo:4:6", 
                                                            "2" at name-end means 2. display expansion, will get the third 6 lines
                                                            
-    - Lcd11 with CustomName: SortInfo1                   -> gets data from "CpuCvrSrt:SortInfo:4:6", 
+    - Lcd11 with CustomName: SortInfo1                  -> gets data from "CpuCvrSrt:SortInfo:4:6", 
                                                            "1" at name-end means 1. display expansion, will get the second 6 lines
                                                            
     - Lcd12 with CustomName: SortInfo2                  -> gets data from "CpuCvrSrt:SortInfo:4:6", 
@@ -134,7 +134,9 @@ Display with no connection to these script functions
 #### Example 5:
 The script function `CpuInfHll` has a additional fifth parameter (after a additional `:`) which shifts the offset from center position of the "cut view through the structure" for the deck view display. The font and linecount parameter can additionally be added or not. If not the standard values will be used. If the fifth parameter is missing the structure center will be displayed.
 
-    - Lcd14 with CustomName: CpuInfHll:SortInfo:::-3    -> Runs script function "CpuInfHll" and shifts view cut location by -3 block positions
+    - Lcd14 with CustomName: CpuInfHll:HullInfo:::-3    -> Runs script function "CpuInfHll" and shifts view cut location by -3 block positions
+    - Lcd15 with CustomName: HullInfo                   -> gets data from "CpuInfHll:HullInfo:::-3",
+                                                           draws the structure view
     
 ### Language Setting
 The script functions are designed to work with different languages. Actually deDe and enGB is implemented. Select the desired language in the script file `EgsEsExtensionRun.cs`. All item interactions will be done with local namings and headlines/messages will change, too.
