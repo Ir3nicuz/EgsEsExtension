@@ -10,14 +10,16 @@ using System.ComponentModel;
 using EmpyrionScripting.CustomHelpers;
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Runtime.Remoting.Messaging;
 
 /* ##### Changelog #####
     Remind to change version number in Settings class! :)
     2020-08-21: 1.0.0 -> Initial version
-    2020-08-24: 1.0.1 -> fixed: CpuInfHll memory access reduced
-    2020-08-24: 1.0.2 -> fixed: headline double output bug
+    2020-08-24: 1.0.1 -> fixed: CpuInfHll acces memory every cycle even if no change happens
+    2020-08-24: 1.0.2 -> fixed: headline outputted multiple times depending on existing cpu count
     2020-08-24: 1.0.3 -> fixed: CpuInfBox ignores SafetyStock containers
     2020-08-24: 1.0.4 -> adding: display of version number
+    2020-08-28: 1.0.5 -> fixed: CpuInfHll overloads @huge structures -> Calculations split @huge structures implemented
 */
 
 namespace EgsEsExtension
@@ -37,7 +39,7 @@ namespace EgsEsExtension
             private const String sProcessorName = "CpuInfCpu*";
             private const String sProcessorTag = "Cpu*";
             private const String sHeartBeatPartialErrorTag = "Exception";
-            private static readonly int iHeartBeatMaxFailCount = Settings.GetValue<int>(Settings.Key.TickCount_CpuFailsToNotify);
+            private static readonly int iHeartBeatMaxFailCount = Settings.GetValue<int>(Settings.Key.TickCount_CpuInfCpu_FailsToNotify);
             public class RegisteredCpuDataSet
             {
                 public String HeartBeatData { get; set; } = "";
@@ -620,11 +622,20 @@ namespace EgsEsExtension
             // controls
             private const String sProcessorName = "CpuInfHll*";
             private const int iVirtualYCorrection = 128;
-            private static readonly int iTicksToSleep = Settings.GetValue<int>(Settings.Key.TickCount_HullCheckCyclePauses);
+            private static readonly int iLayersPerTick = Settings.GetValue<int>(Settings.Key.TickCount_CpuInfHll_LayersPerTick);
             public class RegisteredStructureDataSet
             {
                 public double?[][][] StructDamageData { get; set; } = null;
-                public int SleepTicksCounter { get; set; } = 0;
+                public ComputingSteps ComputingStep { get; set; } = 0;
+                public int NextLayerToStartFrom { get; set; } = 0;
+                public int DisplayToDraw { get; set; } = 0;
+                public bool IsStructureInitilized { get; set; } = false;
+            }
+            public enum ComputingSteps
+            {
+                eStoragedInitialising,
+                eStructureCalculation,
+                eViewDraw
             }
             public static void Run(IScriptModData root, Locales.Language lng)
             {
@@ -633,9 +644,6 @@ namespace EgsEsExtension
                 ICsScriptFunctions CsRoot = root.CsRoot;
                 IEntityData E = root.E;
                 // without structure powered and without "processing device" the scrip should "sleep"
-                RegisteredStructureDataSet storedStructureData = PersistentDataStorage.GetRegisteredStructureDataSet(E);
-                if (storedStructureData.SleepTicksCounter < iTicksToSleep) { storedStructureData.SleepTicksCounter++; return; }
-                storedStructureData.SleepTicksCounter = 0;
                 IBlockData[] deviceProcessors = CsRoot.Devices(E.S, sProcessorName);
                 if (!E.S.IsPowerd || deviceProcessors == null || deviceProcessors.Count() < 1) { return; }
                 // prepare output for debugging
@@ -652,72 +660,105 @@ namespace EgsEsExtension
                         displayManager.AddInfoDisplays(GenericMethods.SplitArguments(processor.CustomName));
                     });
                     displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedSettingsReadIn)));
-                    // load or generate data array
+                    // view calculation state machine
+                    int iPosX;
+                    int iPosY;
+                    int iPosZ;
                     VectorInt3 structMin = E.S.MinPos;
                     VectorInt3 structMax = E.S.MaxPos;
+                    RegisteredStructureDataSet storedStructureData = PersistentDataStorage.GetRegisteredStructureDataSet(E);
                     double?[][][] dStructDamageData = storedStructureData.StructDamageData;
-                    if (dStructDamageData == null)
+                    displayManager.AddLogEntry(String.Format("- {0}: {1} / {2}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedStepXFromY), 
+                        ((int)storedStructureData.ComputingStep) + 1, Enum.GetNames(typeof(ComputingSteps)).Length));
+                    switch (storedStructureData.ComputingStep)
                     {
-                        // generate data array size
-                        int iSizeX = structMax.x - structMin.x + 1;
-                        int iSizeY = structMax.y - structMin.y + 1;
-                        int iSizeZ = structMax.z - structMin.z + 1;
-                        dStructDamageData = new double?[iSizeX][][];
-                        for (int x = 0; x < dStructDamageData.Length; x++)
-                        {
-                            dStructDamageData[x] = new double?[iSizeY][];
-                            for (int y = 0; y < dStructDamageData[x].Length; y++)
+                        case ComputingSteps.eStoragedInitialising:
+                            // generate data array size
+                            int iSizeX = structMax.x - structMin.x + 1;
+                            int iSizeY = structMax.y - structMin.y + 1;
+                            int iSizeZ = structMax.z - structMin.z + 1;
+                            dStructDamageData = new double?[iSizeX][][];
+                            for (iPosX = 0; iPosX < dStructDamageData.Length; iPosX++)
                             {
-                                dStructDamageData[x][y] = new double?[iSizeZ];
-                            }
-                        }
-                        // generate null-block structure for non-filled block spaces
-                        for (int iPosX = 0; iPosX < dStructDamageData.Length; iPosX++)
-                        {
-                            for (int iPosY = 0; iPosY < dStructDamageData[0].Length; iPosY++)
-                            {
-                                for (int iPosZ = 0; iPosZ < dStructDamageData[0][0].Length; iPosZ++)
+                                dStructDamageData[iPosX] = new double?[iSizeY][];
+                                for (iPosY = 0; iPosY < dStructDamageData[iPosX].Length; iPosY++)
                                 {
-                                    IBlockData block = CsRoot.Block(E.S, iPosX + structMin.x, iPosY + structMin.y + iVirtualYCorrection, iPosZ + structMin.z);
-                                    if (block.Id > 0) { dStructDamageData[iPosX][iPosY][iPosZ] = 1.0; }
-                                    else { dStructDamageData[iPosX][iPosY][iPosZ] = null; }
+                                    dStructDamageData[iPosX][iPosY] = new double?[iSizeZ];
                                 }
                             }
-                        }
-                        storedStructureData.StructDamageData = dStructDamageData;
+                            storedStructureData.StructDamageData = dStructDamageData;
+                            displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedDataReadIn)));
+                            storedStructureData.ComputingStep = ComputingSteps.eStructureCalculation;
+                            break;
+                        case ComputingSteps.eStructureCalculation:
+                            // refresh structure damage data in array
+                            int iStaggeredXStart = storedStructureData.NextLayerToStartFrom;
+                            int iStaggeredXEnd = iStaggeredXStart + iLayersPerTick;
+                            bool bInitilized = storedStructureData.IsStructureInitilized;
+                            for (iPosX = iStaggeredXStart; iPosX < iStaggeredXEnd && iPosX < dStructDamageData.Length; iPosX++)
+                            {
+                                for (iPosY = 0; iPosY < dStructDamageData[0].Length; iPosY++)
+                                {
+                                    for (iPosZ = 0; iPosZ < dStructDamageData[0][0].Length; iPosZ++)
+                                    {
+                                        IBlockData block = CsRoot.Block(E.S, iPosX + structMin.x, iPosY + structMin.y + iVirtualYCorrection, iPosZ + structMin.z);
+                                        double? dValue = dStructDamageData[iPosX][iPosY][iPosZ];
+                                        if (block != null && block.Id > 0)
+                                        {
+                                            dStructDamageData[iPosX][iPosY][iPosZ] = (double)block.Damage / block.HitPoints;
+                                        }
+                                        else if (dValue.HasValue)
+                                        {
+                                            dStructDamageData[iPosX][iPosY][iPosZ] = 1.0;
+                                        }
+                                        else if (!bInitilized)
+                                        {
+                                            dStructDamageData[iPosX][iPosY][iPosZ] = null;
+                                        }
+                                    }
+                                }
+                            }
+                            if (iPosX >= dStructDamageData.Length)
+                            {
+                                // convert damaga data to geometric views
+                                storedStructureData.NextLayerToStartFrom = 0;
+                                storedStructureData.IsStructureInitilized = true;
+                                displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedDataComputation)));
+                                storedStructureData.ComputingStep = ComputingSteps.eViewDraw;
+                            }
+                            else
+                            {
+                                storedStructureData.NextLayerToStartFrom = iPosX;
+                                displayManager.AddLogEntry(String.Format("- {0}: {1} / {2}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedComputingXFromY), iPosX, dStructDamageData.Length));
+                            }
+                            break;
+                        case ComputingSteps.eViewDraw:
+                            // convert damaga data to geometric views
+                            int iMaxDisplayGroupCount = displayManager.GetMaxInfoDisplayGroupCount();
+                            int iDisplayToDraw = storedStructureData.DisplayToDraw;
+                            displayManager.AddStructureView(dStructDamageData, DisplayViewManager.StructureViews.eTopView);
+                            displayManager.AddStructureView(dStructDamageData, DisplayViewManager.StructureViews.eDeckView);
+                            if (displayManager.DrawFormattedInfoView(iDisplayToDraw))
+                            { 
+                                displayManager.AddLogEntry(String.Format("- {0}: {1} / {2}", 
+                                    Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedInfoPanelDraw), (iDisplayToDraw + 1), iMaxDisplayGroupCount)); 
+                            }
+                            else
+                            { 
+                                displayManager.AddLogEntry(String.Format("- {0}: {1} / {2}", 
+                                    Locales.GetValue(lng, Locales.Key.Text_CpuLog_NoInfoPanelFound), (iDisplayToDraw + 1), iMaxDisplayGroupCount)); 
+                            }
+                            if ((iDisplayToDraw + 1) < iMaxDisplayGroupCount) { 
+                                storedStructureData.DisplayToDraw++;
+                            } 
+                            else 
+                            { 
+                                storedStructureData.DisplayToDraw = 0;
+                                storedStructureData.ComputingStep = ComputingSteps.eStructureCalculation;
+                            }
+                            break;
+                        default: break;
                     }
-                    // refresh structure damage data in array
-                    bool bSomeStructChanges = false;
-                    for (int iPosX = 0; iPosX < dStructDamageData.Length; iPosX++)
-                    {
-                        for (int iPosY = 0; iPosY < dStructDamageData[0].Length; iPosY++)
-                        {
-                            for (int iPosZ = 0; iPosZ < dStructDamageData[0][0].Length; iPosZ++)
-                            {
-                                IBlockData block = CsRoot.Block(E.S, iPosX + structMin.x, iPosY + structMin.y + iVirtualYCorrection, iPosZ + structMin.z);
-                                double? dValue = dStructDamageData[iPosX][iPosY][iPosZ];
-                                if (block != null && block.Id > 0)
-                                {
-                                    dStructDamageData[iPosX][iPosY][iPosZ] = (double)block.Damage / block.HitPoints;
-                                    if (!dValue.HasValue) { bSomeStructChanges = true; }
-                                }
-                                else if (dValue.HasValue && dValue.Value < 1.0)
-                                {
-                                    dStructDamageData[iPosX][iPosY][iPosZ] = 1.0;
-                                    bSomeStructChanges = true;
-                                }
-                            }
-                        }
-                    }
-                    if (bSomeStructChanges) { storedStructureData.StructDamageData = dStructDamageData; }
-                    displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedDataReadIn)));
-                    // convert damaga data to geometric views
-                    displayManager.AddStructureView(dStructDamageData, DisplayViewManager.StructureViews.eTopView);
-                    displayManager.AddStructureView(dStructDamageData, DisplayViewManager.StructureViews.eDeckView);
-                    displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedDataComputation)));
-                    // draw info panel
-                    if (displayManager.DrawFormattedInfoView()) { displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedInfoPanelDraw))); }
-                    else { displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_NoInfoPanelFound))); }
                 }
                 catch (Exception e)
                 {
@@ -2404,12 +2445,12 @@ namespace EgsEsExtension
             }
             public void AddStructureView(double?[][][] dStructDamageData, StructureViews eView)
             {
-                String sName = "";
+                String sName;
                 switch (eView)
                 {
-                    case StructureViews.eTopView: sName += Locales.GetValue(Language, Locales.Key.Headline_StatHll_TopView); break;
-                    case StructureViews.eDeckView: sName += Locales.GetValue(Language, Locales.Key.Headline_StatHll_DeckView); break;
-                    default: sName += Locales.GetValue(Language, Locales.Key.Text_ErrorMessage_Unknown); break;
+                    case StructureViews.eTopView: sName = Locales.GetValue(Language, Locales.Key.Headline_StatHll_TopView); break;
+                    case StructureViews.eDeckView: sName = Locales.GetValue(Language, Locales.Key.Headline_StatHll_DeckView); break;
+                    default: sName = Locales.GetValue(Language, Locales.Key.Text_ErrorMessage_Unknown); break;
                 }
                 DisplayElement element = new DisplayElement(ComputeHeadLine(sName), dStructDamageData, eView);
                 infoElementList.Add(element);
@@ -2516,6 +2557,10 @@ namespace EgsEsExtension
                 logDisplaysList.Add(newLcdSet);
                 SetDisplayText(newLcdSet, String.Format("{0} v{3} Log:{1}Update: {2}{1}", sHeadline, Environment.NewLine, DateTime.Now, sVersion));
             }
+            public int GetMaxInfoDisplayGroupCount()
+            {
+                return infoDisplaysList.Select(lcdSet => lcdSet.LCDDisplayTable.Count).Max();
+            }
             public void AddLogEntry(String sEntry)
             {
                 AppendDisplayText(logDisplaysList, String.Format("{0}{1}", Environment.NewLine, sEntry));
@@ -2529,14 +2574,13 @@ namespace EgsEsExtension
                 });
                 AppendDisplayText(logDisplaysList, sText);
             }
-            public bool DrawFormattedInfoView()
+            public bool DrawFormattedInfoView(int? iDisplaySelector = null)
             {
                 Dictionary<int, Dictionary<int, String>> displayLines = new Dictionary<int, Dictionary<int, String>>();
                 String sLineIndent;
                 int iFontSize;
                 int iLineCount;
                 int iLineCounter;
-                int iColumnCounter;
                 int iColumnWidth;
                 int iActIndent;
                 int iLcdGroupCount;
@@ -2545,16 +2589,11 @@ namespace EgsEsExtension
                 bool bResult = false;
                 infoDisplaysList.ForEach(lcdSet =>
                 {
-                    infoElementList.Where(element => element.Type == ElementTypes.eStructureView).ForEach(element =>
-                    {
-                        element.SetBody(ComputeStructureView(element.StructureData, element.StructureView, lcdSet.StructureViewOffset));
-                    });
                     iLcdGroupCount = lcdSet.LCDDisplayTable.Count;
                     iLcdGroupCounter = 0;
                     iFontSize = lcdSet.FontSize;
                     iLineCount = lcdSet.LineCount;
                     iLineCounter = 0;
-                    iColumnCounter = 0;
                     iColumnWidth = 0;
                     iActIndent = 0;
                     sLineIndent = "";
@@ -2562,25 +2601,29 @@ namespace EgsEsExtension
                     iHeadlineCount = infoElementList.Count(element => element.Type == ElementTypes.eHeadline);
                     infoElementList.ForEach(element =>
                     {
-                        AddDisplayLine(displayLines, iLcdGroupCounter, iLineCounter, element.OutputHeader, sLineIndent);
-                        iLineCounter++;
-                        element.OutputBody?.ForEach(body =>
+                        if (element.Type == ElementTypes.eStructureView)
                         {
-                            AddDisplayLine(displayLines, iLcdGroupCounter, iLineCounter, body, sLineIndent);
-                            iLineCounter++;
-                        });
-                        if (element.Type != ElementTypes.eBar & element.Type != ElementTypes.eHeadline)
-                        {
-                            AddDisplayLine(displayLines, iLcdGroupCounter, iLineCounter, "", sLineIndent);
-                            iLineCounter++;
+                            element.SetBody(ComputeStructureView(element.StructureData, element.StructureView, lcdSet.StructureViewOffset));
                         }
+                        if (!iDisplaySelector.HasValue || iLcdGroupCounter == iDisplaySelector.Value)
+                        {
+                            iLineCounter = AddDisplayLine(displayLines, iLcdGroupCounter, iLineCounter, element.OutputHeader, sLineIndent);
+                            element.OutputBody?.ForEach(body =>
+                            {
+                                iLineCounter = AddDisplayLine(displayLines, iLcdGroupCounter, iLineCounter, body, sLineIndent);
+                            });
+                            if (element.Type != ElementTypes.eBar & element.Type != ElementTypes.eHeadline)
+                            {
+                                iLineCounter = AddDisplayLine(displayLines, iLcdGroupCounter, iLineCounter, "", sLineIndent);
+                            }
+                        }
+                        else { iLineCounter += element.LineCount; }
                         iColumnWidth = Math.Max(element.MaxWidth, iColumnWidth);
                         if (iLineCounter >= iLineCount)
                         {
                             if (iLcdGroupCounter < (iLcdGroupCount - 1)) { iLcdGroupCounter++; }
                             else
                             {
-                                iColumnCounter++;
                                 iLcdGroupCounter = 0;
                                 iActIndent += iFontSize * iColumnWidth;
                                 sLineIndent = String.Format("<indent={0}px>", iActIndent);
@@ -2592,14 +2635,14 @@ namespace EgsEsExtension
                     iLcdGroupCounter = 0;
                     lcdSet.LCDDisplayTable.OrderBy(lcdGroup => lcdGroup.Key).Select(lcdGroup => lcdGroup.Value).ForEach(lcdGroup =>
                     {
-                        bResult = true;
-                        if (displayLines.TryGetValue(iLcdGroupCounter, out Dictionary<int, String> groupLines))
+                        if (!iDisplaySelector.HasValue || iLcdGroupCounter == iDisplaySelector.Value)
                         {
-                            SetDisplayText(lcdGroup, iFontSize, String.Join("", groupLines.OrderBy(line => line.Key).Select(line => line.Value)));
-                        }
-                        else
-                        {
-                            SetDisplayText(lcdGroup, iFontSize, "");
+                            bResult = true;
+                            if (displayLines.TryGetValue(iLcdGroupCounter, out Dictionary<int, String> groupLines))
+                            {
+                                SetDisplayText(lcdGroup, iFontSize, String.Join("", groupLines.OrderBy(line => line.Key).Select(line => line.Value)));
+                            }
+                            else { SetDisplayText(lcdGroup, iFontSize, ""); }
                         }
                         iLcdGroupCounter++;
                     });
@@ -2775,7 +2818,7 @@ namespace EgsEsExtension
                     lcd?.SetText(lcd?.GetText() + sText);
                 });
             }
-            private void AddDisplayLine(Dictionary<int, Dictionary<int, String>> displayLines, int iDisplayGroup, int iLine, String sLine, String sLineIndent)
+            private int AddDisplayLine(Dictionary<int, Dictionary<int, String>> displayLines, int iDisplayGroup, int iLine, String sLine, String sLineIndent)
             {
                 if (!displayLines.TryGetValue(iDisplayGroup, out Dictionary<int, String> lineGroup))
                 {
@@ -2787,6 +2830,7 @@ namespace EgsEsExtension
                     lineGroup.Add(iLine, iLine == 0 ? "<indent=0>" : (Environment.NewLine + "<indent=0>"));
                 }
                 lineGroup[iLine] += sLineIndent + sLine;
+                return iLine+=1;
             }
             private static int InnerLengthInHtml(String sText)
             {
@@ -2800,11 +2844,12 @@ namespace EgsEsExtension
                 }
                 return iLength;
             }
-            private class DisplayElement
+            public class DisplayElement
             {
                 public String OutputHeader { get; private set; }
                 public List<String> OutputBody { get; private set; }
-                public int MaxWidth { get; private set; }
+                public int MaxWidth { get; private set; } = 0;
+                public int LineCount { get; private set; } = 0;
                 public ElementTypes Type { get; private set; }
                 public StructureViews StructureView { get; private set; }
                 public double?[][][] StructureData { get; private set; }
@@ -2816,6 +2861,7 @@ namespace EgsEsExtension
                     StructureView = StructureViews.eNotDefined;
                     StructureData = null;
                     ComputeWidth();
+                    ComputeLineCount();
                 }
                 public DisplayElement(String sOutputHeader, double?[][][] dStructDamageData, StructureViews eView)
                 {
@@ -2845,10 +2891,16 @@ namespace EgsEsExtension
                         MaxWidth = Math.Max(MaxWidth, (int)(InnerLengthInHtml(body) * dFactor));
                     });
                 }
+                private void ComputeLineCount()
+                {
+                    LineCount = OutputBody != null ? OutputBody.Count : 0;
+                    if (Type != ElementTypes.eBar & Type != ElementTypes.eHeadline) { LineCount += 2; } else { LineCount += 1; };
+                }
                 public void SetBody(List<String> outputBody)
                 {
                     OutputBody = outputBody;
                     ComputeWidth();
+                    ComputeLineCount();
                 }
             }
             private class DisplaySet
@@ -2891,7 +2943,7 @@ namespace EgsEsExtension
                     ActiveCount = iActiveCount;
                 }
             }
-            private enum ElementTypes
+            public enum ElementTypes
             {
                 eHeadline,
                 eBar,
@@ -3087,6 +3139,8 @@ namespace EgsEsExtension
                 Text_CpuLog_FinishedCargoSorting,
                 Text_CpuLog_FinishedCargoTransfer,
                 Text_CpuLog_FinishedDataReset,
+                Text_CpuLog_FinishedComputingXFromY,
+                Text_CpuLog_FinishedStepXFromY,
 
                 Text_CpuLog_NoItemStructureFile,
                 Text_CpuLog_NoInfoPanelFound,
@@ -3283,6 +3337,8 @@ namespace EgsEsExtension
                 { Key.Text_CpuLog_FinishedCargoSorting, "Frachtverarbeitung abgeschlossen" },
                 { Key.Text_CpuLog_FinishedCargoTransfer, "Frachttransfer abgeschlossen" },
                 { Key.Text_CpuLog_FinishedDataReset, "Strukturdaten gelöscht" },
+                { Key.Text_CpuLog_FinishedComputingXFromY, "Berechnungen x von y abgeschlossen" },
+                { Key.Text_CpuLog_FinishedStepXFromY, "Schritt x von y abgeschlossen" },
 
                 { Key.Text_CpuLog_NoItemStructureFile, "keine Item Gruppenstruktur Datei gefunden" },
                 { Key.Text_CpuLog_NoInfoPanelFound, "kein Informations-Display gefunden" },
@@ -3478,6 +3534,8 @@ namespace EgsEsExtension
                 { Key.Text_CpuLog_FinishedCargoSorting, "Cargo-Sorting successful" },
                 { Key.Text_CpuLog_FinishedCargoTransfer, "Cargo-Conveying successful" },
                 { Key.Text_CpuLog_FinishedDataReset, "Structure data removed" },
+                { Key.Text_CpuLog_FinishedComputingXFromY, "Calculation x from y finished" },
+                { Key.Text_CpuLog_FinishedStepXFromY, "Step x von y finished" },
 
                 { Key.Text_CpuLog_NoItemStructureFile, "No item structure file found" },
                 { Key.Text_CpuLog_NoInfoPanelFound, "No info panel found" },
@@ -3540,7 +3598,7 @@ namespace EgsEsExtension
     {
         public static class Settings
         {
-            public static readonly String Version = "1.0.4";
+            public static readonly String Version = "1.0.5";
             public static readonly String Author = "Preston";
 
             public enum Key
@@ -3582,8 +3640,9 @@ namespace EgsEsExtension
                 CompareLevel_TanksEmpty_Warning,
                 CompareLevel_TanksEmpty_Critical,
 
-                TickCount_CpuFailsToNotify,
-                TickCount_HullCheckCyclePauses,
+                TickCount_CpuInfCpu_FailsToNotify,
+                TickCount_CpuInfHll_LayersPerTick,
+
                 TickCount_ItemsToSort,
                 TickCount_VesselsToFill,
                 TickCount_ItemsToFill,
@@ -3637,8 +3696,8 @@ namespace EgsEsExtension
                 { Key.CompareLevel_TanksEmpty_Warning, "0,25" },
                 { Key.CompareLevel_TanksEmpty_Critical, "0,1" },
 
-                { Key.TickCount_CpuFailsToNotify, "3" },
-                { Key.TickCount_HullCheckCyclePauses, "2" },
+                { Key.TickCount_CpuInfCpu_FailsToNotify, "3" },
+                { Key.TickCount_CpuInfHll_LayersPerTick, "50" },
                 { Key.TickCount_ItemsToSort, "3" },
                 { Key.TickCount_VesselsToFill, "1" },
                 { Key.TickCount_ItemsToFill, "1" },
@@ -3665,6 +3724,18 @@ namespace EgsEsExtension
                     }
                 }
                 return value;
+            }
+        }
+    }
+    
+    namespace Debug
+    {
+        public class BugBuster
+        {
+            private void TryAndError()
+            {
+                //ISoundPlayer jukebox;
+                
             }
         }
     }
