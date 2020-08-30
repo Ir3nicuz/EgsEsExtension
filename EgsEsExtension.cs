@@ -20,6 +20,8 @@ using System.Runtime.Remoting.Messaging;
     2020-08-24: 1.0.3 -> fixed: CpuInfBox ignores SafetyStock containers
     2020-08-24: 1.0.4 -> adding: display of version number
     2020-08-28: 1.0.5 -> fixed: CpuInfHll overloads @huge structures -> Calculations split @huge structures implemented
+    2020-08-30: 1.0.6 -> fixed: a few little display issues
+    2020-08-30: 1.0.7 -> adding: ItemStructureTree.ecf - ItemGroup "Armor" and "DecosMulti" added + some missing item id's added
 */
 
 namespace EgsEsExtension
@@ -1269,7 +1271,7 @@ namespace EgsEsExtension
                             // register incomplete vessel
                             if (dVesselProgressAct < dVesselProgressMax)
                             {
-                                remainingVesselList.Add(vesselSetting.E, dVesselProgressAct / dVesselProgressMax * 100);
+                                remainingVesselList.Add(vesselSetting.E, dVesselProgressAct / dVesselProgressMax);
                             }
                         });
                         displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedCargoTransfer)));
@@ -1280,7 +1282,7 @@ namespace EgsEsExtension
                             vesselInfoTableLineList.Clear();
                             remainingVesselList.ForEach(vessel =>
                             {
-                                vesselInfoTableLineList.Add(String.Format(" -{0} {1} {2:N2}%", vessel.Key.Name, Locales.GetValue(lng, Locales.Key.Text_BoxFill_VesselProgressText), vessel.Value));
+                                vesselInfoTableLineList.Add(String.Format(" -{0} {1} {2:P2}", vessel.Key.Name, Locales.GetValue(lng, Locales.Key.Text_BoxFill_VesselProgressText), vessel.Value));
                             });
                             displayManager.AddSimpleInfoTable(Locales.GetValue(lng, Locales.Key.Headline_BoxFill_Table_VesselsRemaining), vesselInfoTableLineList.ToArray());
                         }
@@ -1425,7 +1427,7 @@ namespace EgsEsExtension
                             vesselInfoTableLineList.Clear();
                             remainingVesselList.ForEach(vessel =>
                             {
-                                vesselInfoTableLineList.Add(String.Format(" -{0} {1} {2:P2}%", vessel.Key.Name, Locales.GetValue(lng, Locales.Key.Text_BoxPurge_VesselProgressText), vessel.Value));
+                                vesselInfoTableLineList.Add(String.Format(" -{0} {1} {2:P2}", vessel.Key.Name, Locales.GetValue(lng, Locales.Key.Text_BoxPurge_VesselProgressText), vessel.Value));
                             });
                             displayManager.AddSimpleInfoTable(Locales.GetValue(lng, Locales.Key.Headline_BoxPurge_Table_VesselsRemaining), vesselInfoTableLineList.ToArray());
                         }
@@ -1852,6 +1854,7 @@ namespace EgsEsExtension
                         case ItemGroups.Foods: sTargetBoxTag = CargoManagementTags.ContainerTag_Food; break;
                         case ItemGroups.Ingredients: sTargetBoxTag = CargoManagementTags.ContainerTag_Ingredient; break;
                         case ItemGroups.Sprouts: sTargetBoxTag = CargoManagementTags.ContainerTag_Sprout; break;
+                        case ItemGroups.Armor:
                         case ItemGroups.ToolsPlaceable:
                         case ItemGroups.ToolsPlayer: sTargetBoxTag = CargoManagementTags.ContainerTag_Tool; break;
                         case ItemGroups.ArmorMods: sTargetBoxTag = CargoManagementTags.ContainerTag_ArmorMod; break;
@@ -1973,6 +1976,7 @@ namespace EgsEsExtension
             public const String WeaponsPlayer = "WeaponsPlayer";
             public const String ToolsPlayer = "ToolsPlayer";
             public const String ToolsPlaceable = "ToolsPlaceable";
+            public const String Armor = "Armor";
             public const String ArmorMods = "ArmorMod";
             public const String Sprouts = "Sprouts";
             public const String Foods = "Foods";
@@ -1986,6 +1990,7 @@ namespace EgsEsExtension
             public const String Blocks = "Blocks";
             public const String StructureBlocksMulti = "StructureBlocksMulti";
             public const String DevicesMulti = "DevicesMulti";
+            public const String DecosMulti = "DecosMulti";
             public const String AntennasMulti = "AntennasMulti";
             public const String LightsMulti = "LightsMulti";
             public const String ContainersMulti = "ContainersMulti";
@@ -3598,7 +3603,7 @@ namespace EgsEsExtension
     {
         public static class Settings
         {
-            public static readonly String Version = "1.0.5";
+            public static readonly String Version = "1.0.7";
             public static readonly String Author = "Preston";
 
             public enum Key
