@@ -1,5 +1,5 @@
 # EgsEsExtension
-  A set of generic ingame functions for Empyrion Galactic Survival based on the EmpyrionScripting Mod by [ASTIC](https://github.com/GitHub-TC)
+  A set of generic ingame functions for Empyrion Galactic Survival (1.5 or higher) based on the EmpyrionScripting Mod by [ASTIC](https://github.com/GitHub-TC)
 
 ## Content
 - [Script Functions Overview](#script-functions-overview)
@@ -70,9 +70,10 @@ In the Steam workshop you can find a [Demo CV](https://steamcommunity.com/shared
 
 #### Needed Configuration 
 `@FilePath: ~\Empyrion\Games\(savegamename)\Mods\EmpyrionScripting\CsCompilerConfiguration.json`
-- Add to `CustomAssemblies`: "CustomDLLs\\EgsEsExtension.dll"
+- Add to `CustomAssemblies`: "CustomDLLs\\\\EgsEsExtension.dll"
 - Add to `Usings`: "EgsEsExtension", "EgsEsExtension.Scripts", "EgsEsExtension.Locales"
 - Add to `SymbolPermissions` under `SaveGame`: "EgsEsExtension", "EgsEsExtension.*"
+<img src="images/Config.png" title="Example" width="400" height="400"/>
 
 #### Recommended Configuration
 `@FilePath: ~\Empyrion\Games\(savegamename)\Mods\EmpyrionScripting\Configuration.json`
