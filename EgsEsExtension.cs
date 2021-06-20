@@ -25,6 +25,7 @@ using System.Collections.Concurrent;
     2020-09-01: 1.0.9   -> adding:  CpuCvrSrt - information display now shows additional new information about resupply progress
     2020-09-01: 1.0.10  -> fixed:   ItemStructureTree.ecf some missing item id's added
     2020-09-02: 1.0.11  -> fixed:   CpuCvrFll not taking different requests of the same item into account
+    2020-06-20: 1.0.12  -> fixed:   TreeFileParser now ignores whitespaces before/after item ids / ItemStructureTree.ecf updated
 */
 
 namespace EgsEsExtension
@@ -1605,7 +1606,7 @@ namespace EgsEsExtension
             private readonly List<SettingsDataManager> remoteSettingsList = new List<SettingsDataManager>();
             private readonly Dictionary<IEntityData, String> remoteContainerNameList = new Dictionary<IEntityData, String>();
             private readonly Dictionary<IEntityData, int> remoteValidityAndPriorityList = new Dictionary<IEntityData, int>();
-            const int iRemoteConnectionId = 1627;
+            const int iRemoteConnectionBlockId = 1627;
             public CargoTransferManager(ICsScriptFunctions rootFunctions, IEntityData vessel, Locales.Language lng)
             {
                 CsRoot = rootFunctions;
@@ -1637,7 +1638,7 @@ namespace EgsEsExtension
                     remoteContainerNameList.Add(vessel, sContainerName);
                     remoteSettingsList.Add(settings);
                 }
-                IBlockData remoteDevice = CsRoot.Devices(vessel.S, "*").Where(c => c.Id == iRemoteConnectionId).FirstOrDefault();
+                IBlockData remoteDevice = CsRoot.Devices(vessel.S, "*").Where(c => c.Id == iRemoteConnectionBlockId).FirstOrDefault();
                 IBlockData container = CsRoot.Devices(vessel.S, sContainerName ?? "").FirstOrDefault();
                 if (bReadInState
                     && remoteDevice != null
@@ -1875,7 +1876,7 @@ namespace EgsEsExtension
             }
             public String GetContainerNameByItemId(int iItemId)
             {
-                // das geht besser/stabiler/wartungsfreundlicher/plausibler, wenn die api eine abrufbare ingame gruppen vererbungsstruktur für items hergibt
+                // das geht besser/stabiler/wartungsfreundlicher/plausibler, sobald die api jemals eine abrufbare ingame gruppen vererbungsstruktur für items hergibt
                 String sResult = null;
                 String sTargetBoxTag = null;
                 ItemGroups.GetAllGroupsById(iItemId)?.ForEach(sGroup =>
@@ -2125,7 +2126,6 @@ namespace EgsEsExtension
             private const String sNodeOpener = "{";
             private const String sNodeCloser = "}";
             private const Char cAttributeTagSeperator = ':';
-            private const Char cAttributeTagEndSeperator = ' ';
             private const Char cAttributeItemSeperator = ',';
             private const int iLengthTagNode = 5;
 
@@ -2166,7 +2166,6 @@ namespace EgsEsExtension
                             storedFileChangeDate = lastFileChangeDate;
                             String[] sFileLines = itemStructFileContent.Lines;
                             int iStart;
-                            int iEnd;
                             TreeNode<String> node = null;
                             sFileLines.ForEach(sLine =>
                             {
@@ -2176,11 +2175,6 @@ namespace EgsEsExtension
                                     if (iStart > 0)
                                     {
                                         sLine = sLine.Substring(iStart + iLengthTagNode).Trim();
-                                        iEnd = sLine.IndexOf(cAttributeTagEndSeperator);
-                                        if (iEnd > 0)
-                                        {
-                                            sLine = sLine.Substring(0, iEnd);
-                                        }
                                     }
                                     if (node == null)
                                     {
@@ -2201,7 +2195,7 @@ namespace EgsEsExtension
                                     String[] sArray = sLine.Split(cAttributeTagSeperator);
                                     if (sArray.Count() >= 2)
                                     {
-                                        node?.AddChild(sArray[0].Trim()).AddChild(sArray[1].Trim());
+                                        node?.AddChild(sArray[0].Trim()).AddChild(sArray[1].Replace(" ", string.Empty));
                                     }
                                 }
                             });
@@ -3671,7 +3665,7 @@ namespace EgsEsExtension
     {
         public static class Settings
         {
-            public static readonly String Version = "1.0.11";
+            public static readonly String Version = "1.0.12";
             public static readonly String Author = "Preston";
 
             public enum Key
@@ -3803,11 +3797,16 @@ namespace EgsEsExtension
     
     namespace Debug
     {
+        
         public class BugBuster
         {
             private void TryAndError()
             {
                 //ISoundPlayer jukebox;
+
+            }
+            public static void Run()
+            {
                 
             }
         }
