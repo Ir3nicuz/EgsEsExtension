@@ -82,7 +82,7 @@ In the Steam workshop you can find a [Demo CV](https://steamcommunity.com/shared
 
 ## User Manual
 ### Ingame Script Function Activation
-The scripts simulate a "processing device" behaviour. To go live ingame each script function needs at least one lcd device per structur/vessel the script should work on. The name of the lcd device has to begin with the exact [script-function name](#script-functions-overview). There can be more then one "cpu-lcd" "processing" each script function. Therefore the script function will NOT be executed multiple times. A second cpu-lcd is just a fallback device to keep the script active even if the first cpu-Lcd got for example destroyed. As long as one Lcd with the script function name is present on a structure the script stay active for this structure.
+The scripts simulate a "processing device" behaviour. To go live ingame each script function needs at least one lcd device per structure/vessel the script should work on. The name of the lcd device has to begin with the exact [script-function name](#script-functions-overview). There can be more then one "cpu-lcd" "processing" each script function. Therefore the script function will NOT be executed multiple times. A second cpu-lcd is just a fallback device to keep the script active even if the first cpu-Lcd got for example destroyed. As long as one Lcd with the script function name is present on a structure the script stay active for this structure.
     
 But a second "Cpu" device can be used to defined seperate/different drawing settings for different information displays. Add the optional seperator `:` after the script function name of the processing lcd device to have the possibility to define a name for information output displays. Each lcd device on the structure beginning with the so added name will get a continious information data stream and display it.
 
@@ -90,7 +90,7 @@ Add another optional `:` seperator to be able to define the font size for the be
 
 Certainly the script functions will even run without a information display. But the script functions will output at least basic processing information on the "processing cpu lcd" itself. If not needed or wanted just switch the processor lcd off in the control panel. The script functions will still be active, but no infos will be visible ingame.
 
-At least lcd expanding is possible be adding a number from 0 to 9 at the end of the name on information lcds. Based on the output line count parameter the script functions will first try to go ahead on a slave/follower display before wrap around to a second column on the first display. The lcd location is expected as top to bottom be increasing number.
+At least lcd expanding is possible be adding a number from 0 to 9 at the end of the name on information lcds. Based on the output line count parameter the script functions will first try to go ahead on a slave/follower display before wrap around to a second column on the first display. The lcd location is expected as top to bottom by increasing number.
 
 #### Example 1:
 Runs script function `CpuCvrFll`, draws infos on all lcd devices name begin with "BoxInfo1" with standard font size and no column wrap
@@ -140,7 +140,7 @@ The script function `CpuInfHll` has a additional fifth parameter (after a additi
                                                            draws the structure view
     
 ### Language Setting
-The script functions are designed to work with different languages. Actually deDe and enGB is implemented. Select the desired language in the script file `EgsEsExtensionRun.cs`. All item interactions will be done with local namings and headlines/messages will change, too.
+The script functions are designed to work with different languages. Actually deDE and enGB is implemented. Select the desired language in the script file `EgsEsExtensionRun.cs`. All item interactions will be done with local namings and headlines/messages will change, too.
 
 ### Cargo Management Settings
 The both structure comprehensive script functions `CpuCvrPrg` and `CpuCvrFll` use a logical state model to simulate realistic dock supervision. For example: 
@@ -151,7 +151,7 @@ The both structure comprehensive script functions `CpuCvrPrg` and `CpuCvrFll` us
 All script functions with item-movement simulating a realistic transfer behaviour. The amount of transfered items per tick `SaveGameScriptsIntervallMS` is limited.
 
 All script functions with item and cargo dependency rely on a "settings table" per structure. So for every structure/vessel the script function behaviour can be adjusted seperately. Therefore the structure needs a additional lcd device with a predefined customname:
-- @deDe: Frachtverwaltung
+- @deDE: Frachtverwaltung
 - @enGB: Cargocontrol
 
 The following table shows all settings the settings table can hold. Not all script functions needs all settings. The script function will tell if a expected setting (or the whole settings table lcd device) is missing. The format is one setting per line with `:` between setting name and setting value. Settings are grouped by a headline.
