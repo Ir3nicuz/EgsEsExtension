@@ -6,10 +6,10 @@ using EmpyrionScripting;
 using EmpyrionScripting.Interface;
 using System.IO;
 using System.Text;
-using System.ComponentModel;
 using EmpyrionScripting.CustomHelpers;
 using System.Collections;
 using System.Collections.Concurrent;
+using System.ComponentModel;
 
 /* ##### Changelog #####
     Remind to change version number in Settings class! :)
@@ -25,7 +25,8 @@ using System.Collections.Concurrent;
     2020-09-01: 1.0.9   -> adding:  CpuCvrSrt - information display now shows additional new information about resupply progress
     2020-09-01: 1.0.10  -> fixed:   ItemStructureTree.ecf some missing item id's added
     2020-09-02: 1.0.11  -> fixed:   CpuCvrFll not taking different requests of the same item into account
-    2020-06-20: 1.0.12  -> fixed:   TreeFileParser now ignores whitespaces before/after item ids / ItemStructureTree.ecf updated
+    2021-06-20: 1.0.12  -> fixed:   TreeFileParser now ignores whitespaces before/after item ids / ItemStructureTree.ecf updated
+    2022-03-15: 1.0.13  -> fixed:   Recompile after Mod-Dll-Fix
 */
 
 namespace EgsEsExtension
@@ -3665,7 +3666,7 @@ namespace EgsEsExtension
     {
         public static class Settings
         {
-            public static readonly String Version = "1.0.12";
+            public static readonly String Version = "1.0.13";
             public static readonly String Author = "Preston";
 
             public enum Key
