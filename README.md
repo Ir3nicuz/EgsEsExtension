@@ -1,5 +1,5 @@
 # EgsEsExtension
-  A set of generic ingame functions for Empyrion Galactic Survival (1.5 or higher) based on the EmpyrionScripting Mod by [ASTIC](https://github.com/GitHub-TC)
+  A set of generic ingame functions for [Empyrion Galactic Survival](https://empyriongame.com/) (1.5 or higher) based on the EmpyrionScripting Mod by [ASTIC](https://github.com/GitHub-TC)
 
 ## Content
 - [Script Functions Overview](#script-functions-overview)
