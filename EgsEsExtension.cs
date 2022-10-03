@@ -27,6 +27,7 @@ using System.ComponentModel;
     2020-09-02: 1.0.11  -> fixed:   CpuCvrFll not taking different requests of the same item into account
     2021-06-20: 1.0.12  -> fixed:   TreeFileParser now ignores whitespaces before/after item ids / ItemStructureTree.ecf updated
     2022-03-15: 1.0.13  -> fixed:   Recompile after Mod-Dll-Fix
+    2022-10-03: 1.0.14  -> fixed:   Recompile after Mod-Dll-Fix
 */
 
 namespace EgsEsExtension
@@ -3666,7 +3667,7 @@ namespace EgsEsExtension
     {
         public static class Settings
         {
-            public static readonly String Version = "1.0.13";
+            public static readonly String Version = "1.0.14";
             public static readonly String Author = "Preston";
 
             public enum Key
