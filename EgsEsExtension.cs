@@ -28,6 +28,11 @@ using System.ComponentModel;
     2021-06-20: 1.0.12  -> fixed:   TreeFileParser now ignores whitespaces before/after item ids / ItemStructureTree.ecf updated
     2022-03-15: 1.0.13  -> fixed:   Recompile after Mod-Dll-Fix
     2022-10-03: 1.0.14  -> fixed:   Recompile after Mod-Dll-Fix
+    2023-04-04: 1.0.15  -> changed: CpuCvrSrt and CpuCvrFll: SafetyStockEquip tag removed, function fully transfered to generic SafetyStock tags
+                        -> fixed:   CpuCvrSrt not listing missing items from SafetyStock containers
+                        -> fixed:   Missing item count calculation summarizes wrong on container names with more then one physical container
+                        -> added:   ItemStructureTree.ecf some missing item id's from newer items added
+                        -> fixed:   CpuCvrFll shows the wrong localized name for the wireless connection block 
 */
 
 namespace EgsEsExtension
@@ -1089,7 +1094,7 @@ namespace EgsEsExtension
                             settings.GetParameterValue<String>(CargoManagementTags.ContainerTag_SafetySource));
                         settings.GetSafetyStockContainers().ForEach(container =>
                         {
-                            settings.GetSettingsTable<int>(container.Key).ForEach(item =>
+                            settings.GetSettingsTable<int>(container).ForEach(item =>
                             {
                                 if (iItemCount < iItemMovedPerTick)
                                 {
@@ -1129,35 +1134,25 @@ namespace EgsEsExtension
                         displayManager.AddBar(Locales.GetValue(lng, Locales.Key.Headline_CargoSorter_CargoBar),
                             dLevel, false, iBarSegmentCount, dBoxFillWarningLevel, dBoxFillCriticalLevel);
                         // calculate resupply progress
-                        List<KeyValuePair<string, int>> missingAmmoItems = null;
-                        List<KeyValuePair<string, int>> missingEquipItems = null;
-                        sTargetBoxName = settings.GetParameterValue<String>(CargoManagementTags.SafetyStockAmmoHeadlineTag, true);
+                        List<KeyValuePair<string, int>> missingItems = new List<KeyValuePair<string, int>>();
+                        int iContainerCount = 0;
                         dLevel = 0;
-                        if (sTargetBoxName != null)
+                        settings.GetSafetyStockContainers().ForEach(container => {
+                            dLevel += GenericMethods.ComputeItemCompletenessLevel(CsRoot, E, container.Value,
+                                settings.GetSettingsTable<int>(container), out List<KeyValuePair<string, int>> missingStockItems);
+                            missingItems.AddRange(missingStockItems);
+                            iContainerCount++;
+                        });
+                        if (iContainerCount > 0)
                         {
-                            dLevel += GenericMethods.ComputeItemCompletenessLevel(CsRoot, E, sTargetBoxName,
-                                settings.GetSettingsTable<int>(CargoManagementTags.SafetyStockAmmoHeadlineTag), out missingAmmoItems);
-                        }
-                        sTargetBoxName = settings.GetParameterValue<String>(CargoManagementTags.SafetyStockEquipHeadlineTag, true);
-                        if (sTargetBoxName != null)
-                        {
-                            dLevel += GenericMethods.ComputeItemCompletenessLevel(CsRoot, E, sTargetBoxName,
-                                settings.GetSettingsTable<int>(CargoManagementTags.SafetyStockEquipHeadlineTag), out missingEquipItems);
-                        }
-                        if (missingAmmoItems != null || missingEquipItems != null)
-                        {
-                            if (missingAmmoItems != null && missingEquipItems != null) { dLevel /= 2; }
                             displayManager.AddBar(Locales.GetValue(lng, Locales.Key.Headline_CargoSorter_ResupplyBar),
-                                dLevel, true, iBarSegmentCount, dBoxEmptyWarningLevel, dBoxEmptyCriticalLevel);
-                            List<KeyValuePair<string, int>> missingItems = new List<KeyValuePair<string, int>>();
-                            if (missingAmmoItems != null) { missingItems.AddRange(missingAmmoItems); }
-                            if (missingEquipItems != null) { missingItems.AddRange(missingEquipItems); }
-                            if (missingItems.Count > 0)
-                            {
-                                displayManager.AddSimpleInfoTable(Locales.GetValue(lng, Locales.Key.Headline_CargoSorter_Table_ItemsMissing), missingItems.GroupBy(item => item.Key)
-                                    .Select(grp => new KeyValuePair<String, int>(grp.Key, grp.Sum(count => count.Value)))
-                                    .Select(item => String.Format("- {0}: {1}pcs", item.Key, item.Value)).ToArray());
-                            }
+                                dLevel / (double)iContainerCount, true, iBarSegmentCount, dBoxEmptyWarningLevel, dBoxEmptyCriticalLevel);
+                        }
+                        if (missingItems.Count > 0)
+                        {
+                            displayManager.AddSimpleInfoTable(Locales.GetValue(lng, Locales.Key.Headline_CargoSorter_Table_ItemsMissing), missingItems.GroupBy(item => item.Key)
+                                .Select(grp => new KeyValuePair<String, int>(grp.Key, grp.Sum(count => count.Value)))
+                                .Select(item => String.Format("- {0}: {1}pcs", item.Key, item.Value)).ToArray());
                         }
                         displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedDataComputation)));
                     }
@@ -1257,8 +1252,9 @@ namespace EgsEsExtension
                         {
                             // prepare request list
                             itemRequestsList.Clear();
-                            itemRequestsList.AddRange(vesselSetting.GetSettingsTable<int>(CargoManagementTags.SafetyStockAmmoHeadlineTag));
-                            itemRequestsList.AddRange(vesselSetting.GetSettingsTable<int>(CargoManagementTags.SafetyStockEquipHeadlineTag));
+                            vesselSetting.GetSafetyStockContainers().ForEach(container => {
+                                itemRequestsList.AddRange(vesselSetting.GetSettingsTable<int>(container));
+                            });
                             // prepare measures
                             double dVesselProgressAct = 0;
                             double dVesselProgressMax = 0;
@@ -1676,11 +1672,11 @@ namespace EgsEsExtension
                     }
                     else if (remoteDevice == null)
                     {
-                        sError = Locales.GetValue(Language, Locales.Key.Text_ErrorMessage_RemoteDeviceNotFound);
+                        sError = String.Format("{0} {1}", CsRoot.I18n(iRemoteConnectionBlockId), Locales.GetValue(Language, Locales.Key.Text_ErrorMessage_NotFound));
                     }
                     else if (!remoteDevice.Active)
                     {
-                        sError = Locales.GetValue(Language, Locales.Key.Text_ErrorMessage_RemoteDeviceOffline);
+                        sError = String.Format("{0} {1}", CsRoot.I18n(iRemoteConnectionBlockId), Locales.GetValue(Language, Locales.Key.Text_ErrorMessage_IsOffline));
                     }
                     else if (container == null)
                     {
@@ -1797,7 +1793,15 @@ namespace EgsEsExtension
                 ConvertParameter<T>(sValue, sParameterName, bNoErrorTracking, out T value);
                 return value;
             }
-            public List<KeyValuePair<String, T>> GetSettingsTable<T>(String sItemListHeadlineTag)
+            public List<KeyValuePair<String, T>> GetSettingsTable<T>(KeyValuePair<string, string> container)
+            {
+                return GetSettingsTable<T>(container.Key, container.Value);
+            }
+            public List<KeyValuePair<String, T>> GetSettingsTable<T>(string sItemListHeadlineTag)
+            {
+                return GetSettingsTable<T>(sItemListHeadlineTag, null);
+            }
+            private List<KeyValuePair<String, T>> GetSettingsTable<T>(string key, string value)
             {
                 List<KeyValuePair<String, T>> table = new List<KeyValuePair<String, T>>();
                 bool bInExpectedArea = false;
@@ -1811,7 +1815,7 @@ namespace EgsEsExtension
                         {
                             return;
                         }
-                        if (setting.Key.Equals(sItemListHeadlineTag))
+                        if (setting.Key.Equals(key) && (value == null || setting.Value.Equals(value)))
                         {
                             bInExpectedArea = true;
                             bHeadlineFound = true;
@@ -1825,17 +1829,17 @@ namespace EgsEsExtension
                         }
                         else
                         {
-                            if (ConvertParameter<T>(setting.Value, setting.Key, false, out T value))
+                            if (ConvertParameter<T>(setting.Value, setting.Key, false, out T typedValue))
                             {
-                                table.Add(new KeyValuePair<String, T>(setting.Key, value));
+                                table.Add(new KeyValuePair<String, T>(setting.Key, typedValue));
                             }
-
                         }
                     }
                 });
                 if (bHeadlineFound == false)
                 {
-                    faultyParametersTable.Add(new KeyValuePair<String, String>(sItemListHeadlineTag,
+                    string parameterName = value == null ? key : String.Join(", ", key, value);
+                    faultyParametersTable.Add(new KeyValuePair<String, String>(parameterName,
                         Locales.GetValue(Language, Locales.Key.Text_ErrorMessage_ParameterNotFound)));
                 }
                 return table;
@@ -1966,7 +1970,6 @@ namespace EgsEsExtension
             public const String ContainerTagsHeadlineTag = "Container";
 
             public const String SafetyStockAmmoHeadlineTag = "SafetyStockAmmo";
-            public const String SafetyStockEquipHeadlineTag = "SafetyStockEquip";
             public const String SafetyStockTag = "SafetyStock";
 
             public const String FluidLevelTag_Fuel = "FuelLevel";
@@ -2366,41 +2369,29 @@ namespace EgsEsExtension
             public static double ComputeItemCompletenessLevel(ICsScriptFunctions CsRoot, IEntityData vessel, String sTargetContainer, 
                 List<KeyValuePair<String, int>> requestedItemList, out List<KeyValuePair<String, int>> missingItemList)
             {
-                List<KeyValuePair<String, int>> missingItems = new List<KeyValuePair<String, int>>();
+                Dictionary<String, int> requestedItems = requestedItemList.ToDictionary(item => item.Key, item => item.Value);
                 IItemsData[] storedItems = CsRoot.Items(vessel.S, sTargetContainer);
-                double dMaxCount = 0;
-                double dActCount = 0;
-                bool bFound;
-                String sLocalItemName = "";
+                String sLocalItemName;
                 requestedItemList.ForEach(requestedItem =>
                 {
-                    dMaxCount += requestedItem.Value;
-                    bFound = false;
                     storedItems.ForEach(storedItem =>
                     {
-                        if (bFound) { return; }
                         sLocalItemName = CsRoot.I18n(storedItem.Id);
-                        if (sLocalItemName == requestedItem.Key)
+                        if (requestedItem.Key.Equals(sLocalItemName))
                         {
-                            bFound = true;
-                            if (storedItem.Count < requestedItem.Value)
+                            if (requestedItems.ContainsKey(requestedItem.Key))
                             {
-                                dActCount += storedItem.Count;
-                                missingItems.Add(new KeyValuePair<string, int>(requestedItem.Key, (requestedItem.Value - storedItem.Count)));
-                            }
-                            else
-                            {
-                                dActCount += requestedItem.Value;
+                                requestedItems[requestedItem.Key] -= storedItem.Count;
                             }
                         }
                     });
-                    if (!bFound)
-                    {
-                        missingItems.Add(new KeyValuePair<string, int>(requestedItem.Key, requestedItem.Value));
-                    }
                 });
-                missingItemList = missingItems;
-                return (dMaxCount == 0 ? 0 : (dActCount / dMaxCount));
+
+                missingItemList = requestedItems.Where(item => item.Value > 0).ToList();
+
+                double dMaxCount = requestedItemList.Sum(item => item.Value);
+                double dMissCount = missingItemList.Sum(item => item.Value);
+                return (dMaxCount == 0 ? 0 : ((dMaxCount - dMissCount) / dMaxCount));
             }
             public static int IntelligentItemMove(ICsScriptFunctions CsRoot, IEntityData sourceVessel, IEntityData targetVessel, 
                 String sSourceBoxName, String sTargetBoxName, KeyValuePair<String, int> item)
@@ -3178,8 +3169,8 @@ namespace EgsEsExtension
                 Text_ErrorMessage_ParameterNotFound,
                 Text_ErrorMessage_ConverterNotFound,
                 Text_ErrorMessage_ParameterNotConvertable,
-                Text_ErrorMessage_RemoteDeviceNotFound,
-                Text_ErrorMessage_RemoteDeviceOffline,
+                Text_ErrorMessage_NotFound,
+                Text_ErrorMessage_IsOffline,
                 Text_ErrorMessage_OutputContainerNotFound,
                 Text_ErrorMessage_InputContainerNotFound,
 
@@ -3378,8 +3369,8 @@ namespace EgsEsExtension
                 { Key.Text_ErrorMessage_ParameterNotFound, "Parameter nicht in Tabelle enthalten" },
                 { Key.Text_ErrorMessage_ConverterNotFound, "Kein Datenkonverter gefunden" },
                 { Key.Text_ErrorMessage_ParameterNotConvertable, "Wert nicht verarbeitbar" },
-                { Key.Text_ErrorMessage_RemoteDeviceNotFound, "Fernsteuermodul nicht gefunden" },
-                { Key.Text_ErrorMessage_RemoteDeviceOffline, "Fernsteuermodul ist abgeschaltet" },
+                { Key.Text_ErrorMessage_NotFound, "nicht gefunden" },
+                { Key.Text_ErrorMessage_IsOffline, "ist abgeschaltet" },
                 { Key.Text_ErrorMessage_OutputContainerNotFound, "Keine Ausgabe Container gefunden" },
                 { Key.Text_ErrorMessage_InputContainerNotFound, "Keine Annahme Container gefunden" },
 
@@ -3577,8 +3568,8 @@ namespace EgsEsExtension
                 { Key.Text_ErrorMessage_ParameterNotFound, "Parameter not found in table" },
                 { Key.Text_ErrorMessage_ConverterNotFound, "No suitable converter found" },
                 { Key.Text_ErrorMessage_ParameterNotConvertable, "Parameter value not convertable" },
-                { Key.Text_ErrorMessage_RemoteDeviceNotFound, "Remote device not found" },
-                { Key.Text_ErrorMessage_RemoteDeviceOffline, "Remote device offline" },
+                { Key.Text_ErrorMessage_NotFound, "not found" },
+                { Key.Text_ErrorMessage_IsOffline, "is offline" },
                 { Key.Text_ErrorMessage_OutputContainerNotFound, "Output container not found" },
                 { Key.Text_ErrorMessage_InputContainerNotFound, "Input container not found" },
 
@@ -3667,7 +3658,7 @@ namespace EgsEsExtension
     {
         public static class Settings
         {
-            public static readonly String Version = "1.0.14";
+            public static readonly String Version = "1.0.15";
             public static readonly String Author = "Preston";
 
             public enum Key
