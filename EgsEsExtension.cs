@@ -32,7 +32,8 @@ using System.ComponentModel;
                         -> fixed:   CpuCvrSrt not listing missing items from SafetyStock containers
                         -> fixed:   Missing item count calculation summarizes wrong on container names with more then one physical container
                         -> added:   ItemStructureTree.ecf some missing item id's from newer items added
-                        -> fixed:   CpuCvrFll shows the wrong localized name for the wireless connection block 
+                        -> fixed:   CpuCvrFll shows the wrong localized name for the wireless connection block
+    2023-04-05: 1.0.16  -> fixed:   Settings table lines without values terminate using of following keys
 */
 
 namespace EgsEsExtension
@@ -1317,7 +1318,7 @@ namespace EgsEsExtension
                             vesselInfoTableLineList.Clear();
                             remainingVesselList.ForEach(vessel =>
                             {
-                                vesselInfoTableLineList.Add(String.Format(" -{0} {1} {2:P2}", vessel.Key.Name, Locales.GetValue(lng, Locales.Key.Text_BoxFill_VesselProgressText), vessel.Value));
+                                vesselInfoTableLineList.Add(String.Format(" - {0} {1} {2:P2}", vessel.Key.Name, Locales.GetValue(lng, Locales.Key.Text_BoxFill_VesselProgressText), vessel.Value));
                             });
                             displayManager.AddSimpleInfoTable(Locales.GetValue(lng, Locales.Key.Headline_BoxFill_Table_VesselsRemaining), vesselInfoTableLineList.ToArray());
                         }
@@ -1327,7 +1328,7 @@ namespace EgsEsExtension
                             vesselInfoTableLineList.Clear();
                             missingItemList.GroupBy(item => item.Key).Select(grp => new KeyValuePair<String, int>(grp.Key, grp.Sum(count => count.Value))).ForEach(item =>
                             {
-                                vesselInfoTableLineList.Add(String.Format(" -{0}: {1}pcs", item.Key, item.Value));
+                                vesselInfoTableLineList.Add(String.Format(" - {0}: {1}pcs", item.Key, item.Value));
                             });
                             displayManager.AddSimpleInfoTable(Locales.GetValue(lng, Locales.Key.Headline_BoxFill_Table_ItemsMissing), vesselInfoTableLineList.ToArray());
                         }
@@ -1337,7 +1338,7 @@ namespace EgsEsExtension
                             vesselInfoTableLineList.Clear();
                             rejectedVesselList.ForEach(vessel =>
                             {
-                                vesselInfoTableLineList.Add(String.Format(" -{0}: {1}", vessel.Key.Name, vessel.Value));
+                                vesselInfoTableLineList.Add(String.Format(" - {0}: {1}", vessel.Key.Name, vessel.Value));
                             });
                             displayManager.AddSimpleInfoTable(Locales.GetValue(lng, Locales.Key.Headline_BoxFill_Table_VesselsRejected), vesselInfoTableLineList.ToArray());
                         }
@@ -1823,11 +1824,11 @@ namespace EgsEsExtension
                     }
                     else
                     {
-                        if (setting.Value.Equals(""))
+                        if (setting.Key.Equals(String.Empty))
                         {
                             bInExpectedArea = false;
                         }
-                        else
+                        else if (!setting.Value.Equals(String.Empty))
                         {
                             if (ConvertParameter<T>(setting.Value, setting.Key, false, out T typedValue))
                             {
@@ -3658,7 +3659,7 @@ namespace EgsEsExtension
     {
         public static class Settings
         {
-            public static readonly String Version = "1.0.15";
+            public static readonly String Version = "1.0.16";
             public static readonly String Author = "Preston";
 
             public enum Key
