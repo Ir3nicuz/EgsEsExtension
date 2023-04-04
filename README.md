@@ -164,10 +164,6 @@ Just copy the [template table](#settings-Table-Copy-Template) to the editor pane
     Input:on                            // should the structure except/collect items? "on" = on, any other text = off
     Priority:10                         // processing priority if queue needed, higher value = more priviledged
 
-    SafetyStockEquip:mySpecialBox       // headline for item list of needed/requested items, value after ':' is the supervised box name, typically a "player accesable" one
-    Pentaxid (veredelt):50              // example item to request, uses localized item name, value after ':' is the requested amount, 
-                                        // all structure wide suitable items will be used to try to achive this amount
-
     SafetyStockAmmo:myAmmoBox           // headline for list of structure-needed/requested ammo, value after ':' is the supervised box name, typically the ammo-controller to feed guns and turrets
     Plasmaladung:200                    // example item to request, uses localized item name, value after ':' is the requested amount, 
                                         // all structure wide suitable items will be used to try to achive this amount
@@ -209,14 +205,12 @@ Just copy the [template table](#settings-Table-Copy-Template) to the editor pane
     Input:on
     Priority:10
 
-    SafetyStockEquip:mySpecialBox
-    Pentaxid (veredelt):50
-
     SafetyStockAmmo:myAmmoBox
     Plasmaladung:200
 
     SafetyStock:myBox1
     Sauerstoffflasche:100
+    Pentaxid (veredelt):50
     
     FluidLevels:
     FuelLevel:90
