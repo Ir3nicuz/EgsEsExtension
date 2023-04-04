@@ -27,6 +27,8 @@
 - `CpuInfS` draws compact information overview for smaller displays
 - `CpuInfL` draws information overview for bigger displays
 
+- Pro Tip: A LCD named with `EgsEsExtensionRun` can show script error information if some are present. 
+
 ## Pictures and Demonstration
 In the Steam workshop you can find a [Demo CV](https://steamcommunity.com/sharedfiles/filedetails/?id=2207655758) with this functions amongst other:
 
