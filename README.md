@@ -92,7 +92,7 @@ Add another optional `:` seperator to be able to define the font size for the be
 
 Certainly the script functions will even run without a information display. But the script functions will output at least basic processing information on the "processing cpu lcd" itself. If not needed or wanted just switch the processor lcd off in the control panel. The script functions will still be active, but no infos will be visible ingame.
 
-At least lcd expanding is possible be adding a number from 0 to 9 at the end of the name on information lcds. Based on the output line count parameter the script functions will first try to go ahead on a slave/follower display before wrap around to a second column on the first display. The lcd location is expected as top to bottom by increasing number.
+At least lcd expanding is possible by adding a number from 0 to 9 at the end of the name on information lcds. Based on the output line count parameter the script functions will first try to go ahead on a slave/follower display before wrap around to a second column on the first display. The lcd location is expected as top to bottom by increasing number.
 
 #### Example 1:
 Runs script function `CpuCvrFll`, draws infos on all lcd devices name begin with "BoxInfo1" with standard font size and no column wrap
@@ -104,7 +104,7 @@ Runs script function `CpuCvrFll`, draws infos on all lcd devices name begin with
 #### Example 2 (on the same structure):
 Runs no additional script function, but draws infos on all lcd devices name begin with "BoxInfo2" with font size 6 and will wrap to a new column right next to the least after every 20 lines
 
-    - Lcd4 with CustomName: CpuCvrFll2:BoxInfo2:6:20    -> Runs script not twice, defines another display view
+    - Lcd4 with CustomName: CpuCvrFll:BoxInfo2:6:20    -> Runs script not twice, defines another display view
     - Lcd5 with CustomName: BoxInfo2                    -> gets data from "CpuBoxFill02:BoxInfo2:6:20"
     - Lcd6 with CustomName: BoxInfo2                    -> gets data from "CpuBoxFill02:BoxInfo2:6:20"
 
