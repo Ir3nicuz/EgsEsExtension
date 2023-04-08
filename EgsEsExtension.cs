@@ -33,7 +33,11 @@ using System.ComponentModel;
                         -> fixed:   Missing item count calculation summarizes wrong on container names with more then one physical container
                         -> added:   ItemStructureTree.ecf some missing item id's from newer items added
                         -> fixed:   CpuCvrFll shows the wrong localized name for the wireless connection block
-    2023-04-05: 1.0.16  -> fixed:   Settings table lines without values terminate using of following keys
+    2023-04-05: 1.0.16  -> fixed:   Settings table lines without values terminate recognition of following keys
+    2023-04-05: 1.0.17  -> changed: CpuInfBay: information overkill per vessel reduced to essential, sizeclass added
+    2023-04-08: 1.0.18  -> changed: CpuCvrSrt now only uses SafetyStock Container to fill the tanks, not all containers (performance issue on structures with much containers)
+    2023-04-08: 1.0.19  -> changed: CpuInfS replaced structure damage bar with shield level bar
+    2023-04-08: 1.0.20  -> added:   CpuInfL added shield level bar and power level bar
 */
 
 namespace EgsEsExtension
@@ -100,7 +104,7 @@ namespace EgsEsExtension
                 try
                 {
                     // add Headline
-                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_StatCpu));
+                    displayManager.SetFormattedHeadline(Locales.GetValue(lng, Locales.Key.Headline_Main_StatCpu));
                     // Settings load
                     deviceProcessors.ForEach(processor =>
                     {
@@ -182,7 +186,7 @@ namespace EgsEsExtension
                 }
                 catch (Exception e)
                 {
-                    displayManager.AddLogEntry(GenericMethods.FormatGenericException(e));
+                    displayManager.AddLogEntry(e);
                 }
             }
         }
@@ -228,7 +232,7 @@ namespace EgsEsExtension
                 try
                 {
                     // add Headline
-                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_StatDev));
+                    displayManager.SetFormattedHeadline(Locales.GetValue(lng, Locales.Key.Headline_Main_StatDev));
                     // Settings load
                     deviceProcessors.ForEach(processor =>
                     {
@@ -301,7 +305,7 @@ namespace EgsEsExtension
                 }
                 catch (Exception e)
                 {
-                    displayManager.AddLogEntry(GenericMethods.FormatGenericException(e));
+                    displayManager.AddLogEntry(e);
                 }
             }
         }
@@ -326,7 +330,7 @@ namespace EgsEsExtension
                 try
                 {
                     // add Headline
-                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_StatBox));
+                    displayManager.SetFormattedHeadline(Locales.GetValue(lng, Locales.Key.Headline_Main_StatBox));
                     // Settings load
                     deviceProcessors.ForEach(processor =>
                     {
@@ -377,7 +381,7 @@ namespace EgsEsExtension
                 }
                 catch (Exception e)
                 {
-                    displayManager.AddLogEntry(GenericMethods.FormatGenericException(e));
+                    displayManager.AddLogEntry(e);
                 }
             }
         }
@@ -400,7 +404,7 @@ namespace EgsEsExtension
                 try
                 {
                     // add Headline
-                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_StatWpn));
+                    displayManager.SetFormattedHeadline(Locales.GetValue(lng, Locales.Key.Headline_Main_StatWpn));
                     // Settings load
                     String sItemStructureFile = Settings.GetValue<String>(Settings.Key.FileName_ItemStructureTree);
                     if (!ItemGroups.Init(root, sItemStructureFile)) { 
@@ -447,7 +451,7 @@ namespace EgsEsExtension
                 }
                 catch (Exception e)
                 {
-                    displayManager.AddLogEntry(GenericMethods.FormatGenericException(e));
+                    displayManager.AddLogEntry(e);
                 }
             }
         }
@@ -470,7 +474,7 @@ namespace EgsEsExtension
                 try
                 {
                     // add Headline
-                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_StatThr));
+                    displayManager.SetFormattedHeadline(Locales.GetValue(lng, Locales.Key.Headline_Main_StatThr));
                     // Settings load
                     String sItemStructureFile = Settings.GetValue<String>(Settings.Key.FileName_ItemStructureTree);
                     if (!ItemGroups.Init(root, sItemStructureFile))
@@ -508,7 +512,7 @@ namespace EgsEsExtension
                 }
                 catch (Exception e)
                 {
-                    displayManager.AddLogEntry(GenericMethods.FormatGenericException(e));
+                    displayManager.AddLogEntry(e);
                 }
             }
         }
@@ -521,34 +525,19 @@ namespace EgsEsExtension
                 public String VesselName { get; private set; }
                 public String FactionName { get; private set; }
                 public EntityType Type { get; private set; }
+                public int SizeClass { get; private set; }
                 public bool PowerState { get; private set; }
-                public double FuelLevel { get; private set; }
-                public double OxygenLevel { get; private set; }
-                public double PentaxidLevel { get; private set; }
-                public double CargoLevel { get; private set; }
-                public double DamageLevel { get; private set; }
-                public int WeaponCount { get; private set; }
-                public int ContainerCount { get; private set; }
+
                 public DockedVesselData(IEntityData vessel, ICsScriptFunctions CsRoot, int iStructureLevel)
                 {
-                    IStructureData vesselStructur = vessel.S;
-                    IBlockData[] vesselDevices = CsRoot.Devices(vesselStructur, "*");
-                    IStructureTankWrapper fuelTank = vesselStructur.FuelTank;
-                    IStructureTankWrapper oxygenTank = vesselStructur.OxygenTank;
-                    IStructureTankWrapper pentaxidTank = vesselStructur.PentaxidTank;
+                    IStructureData vesselStructure = vessel.S;
 
                     StructureLevel = iStructureLevel;
                     VesselName = vessel.Name;
                     FactionName = vessel.Faction.ToString();
                     Type = vessel.EntityType;
-                    PowerState = vesselStructur.IsPowerd;
-                    FuelLevel = (fuelTank.Capacity == 0 ? 0 : (fuelTank.Content / fuelTank.Capacity * 100));
-                    OxygenLevel = (oxygenTank.Capacity == 0 ? 0 : (oxygenTank.Content / oxygenTank.Capacity * 100));
-                    PentaxidLevel = (pentaxidTank.Capacity == 0 ? 0 : (pentaxidTank.Content / pentaxidTank.Capacity * 100));
-                    CargoLevel = GenericMethods.ComputeContainerUsage(CsRoot, vessel, "*") * 100;
-                    DamageLevel = vesselStructur.DamageLevel * 100;
-                    WeaponCount = vesselDevices.Where(device => ItemGroups.GetIdListByGroup(ItemGroups.WeaponsL, ItemGroups.WeaponsS)?.Contains(device.Id) == true).Count();
-                    ContainerCount = CsRoot.GetDevices<Eleon.Modding.IContainer>(vesselDevices).Count();
+                    SizeClass = vesselStructure.SizeClass;
+                    PowerState = vesselStructure.IsPowerd;
                 }
             }
             public static void Run(IScriptModData root, Locales.Language lng)
@@ -566,7 +555,7 @@ namespace EgsEsExtension
                 try
                 {
                     // add Headline
-                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_StatDock));
+                    displayManager.SetFormattedHeadline(Locales.GetValue(lng, Locales.Key.Headline_Main_StatDock));
                     // Settings load
                     deviceProcessors.ForEach(processor =>
                     {
@@ -580,28 +569,15 @@ namespace EgsEsExtension
                     List<String> outputLines = new List<String>();
                     dockedVesselList.ForEach(vessel =>
                     {
-                        String sVesselId = String.Format("{0}- {1} / {2} / {3}", Settings.GetValue<String>(Settings.Key.DisplayColor_White),
-                            vessel.VesselName, Locales.GetEntityTypeNameShort(lng, vessel.Type), vessel.FactionName);
-                        String sVesselEnergy = String.Format("{0}{1}:{2}", Settings.GetValue<String>(Settings.Key.DisplayColor_Yellow),
+                        String sVesselId = String.Format("{0}{1} / {2}", Settings.GetValue<String>(Settings.Key.DisplayColor_White),
+                            vessel.VesselName, vessel.FactionName);
+                        String sVesselEnergy = String.Format("{0}{1}: {2}", Settings.GetValue<String>(Settings.Key.DisplayColor_Yellow),
                             Locales.GetValue(lng, Locales.Key.Text_StatDock_ItemText_Energy),
                             vessel.PowerState == false ? Locales.GetValue(lng, Locales.Key.Text_StatDock_State_Off) : Locales.GetValue(lng, Locales.Key.Text_StatDock_State_On));
-                        String sVesselFuel = String.Format("{0}{1}:{2:N0}%", Settings.GetValue<String>(Settings.Key.DisplayColor_Blue),
-                            Locales.GetValue(lng, Locales.Key.Text_StatDock_ItemText_Fuel), vessel.FuelLevel);
-                        String sVesselOxygen = String.Format("{0}{1}:{2:N0}%", Settings.GetValue<String>(Settings.Key.DisplayColor_White),
-                            Locales.GetValue(lng, Locales.Key.Text_StatDock_ItemText_Oxygen), vessel.OxygenLevel);
-                        String sVesselPentaxid = String.Format("{0}{1}:{2:N0}%", Settings.GetValue<String>(Settings.Key.DisplayColor_Purple),
-                            Locales.GetValue(lng, Locales.Key.Text_StatDock_ItemText_Pentaxid), vessel.PentaxidLevel);
-                        String sVesselCargo = String.Format("{0}{1}:{2:N0}%", Settings.GetValue<String>(Settings.Key.DisplayColor_Green),
-                            Locales.GetValue(lng, Locales.Key.Text_StatDock_ItemText_Cargo), vessel.CargoLevel);
-                        String sVesselDamage = String.Format("{0}{1}:{2:N0}%", Settings.GetValue<String>(Settings.Key.DisplayColor_Red),
-                            Locales.GetValue(lng, Locales.Key.Text_StatDock_ItemText_Damage), vessel.DamageLevel);
-                        String sVesselCounts = String.Format("{0}{1}:{2:N0} {3}:{4:N0}", Settings.GetValue<String>(Settings.Key.DisplayColor_White),
-                            Locales.GetValue(lng, Locales.Key.Text_StatDock_ItemText_Container), vessel.ContainerCount,
-                            Locales.GetValue(lng, Locales.Key.Text_StatDock_ItemText_Weapon), vessel.WeaponCount);
+                        String sSizeClass = String.Format("{0}{1}: {2} / {3}", Settings.GetValue<String>(Settings.Key.DisplayColor_Yellow),
+                            Locales.GetValue(lng, Locales.Key.Text_StatDock_ItemText_SizeClass), Locales.GetEntityTypeNameShort(lng, vessel.Type), vessel.SizeClass);
                         String sStructureIndent = new String(' ', vessel.StructureLevel);
-                        outputLines.Add(String.Format("{0} {1}:", sStructureIndent, sVesselId));
-                        outputLines.Add(String.Format("{0}  {1} {2} {3} {4} {5} {6} {7}",
-                            sStructureIndent, sVesselEnergy, sVesselFuel, sVesselOxygen, sVesselPentaxid, sVesselCargo, sVesselDamage, sVesselCounts));
+                        outputLines.Add(String.Format("{0}- {1}, {2}, {3}", sStructureIndent, sVesselId, sVesselEnergy, sSizeClass));
                     });
                     // draw info panel
                     displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedDataComputation)));
@@ -619,7 +595,7 @@ namespace EgsEsExtension
                 }
                 catch (Exception e)
                 {
-                    displayManager.AddLogEntry(GenericMethods.FormatGenericException(e));
+                    displayManager.AddLogEntry(e);
                 }
             }
             private static void AddDockedVesselToList(List<DockedVesselData> dockedVesselList, ICsScriptFunctions CsRoot, IEntityData E, int iStructureLevel)
@@ -667,7 +643,7 @@ namespace EgsEsExtension
                 try
                 {
                     // add Headline
-                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_StatHll));
+                    displayManager.SetFormattedHeadline(Locales.GetValue(lng, Locales.Key.Headline_Main_StatHll));
                     // Settings load
                     deviceProcessors.ForEach(processor =>
                     {
@@ -776,7 +752,7 @@ namespace EgsEsExtension
                 }
                 catch (Exception e)
                 {
-                    displayManager.AddLogEntry(GenericMethods.FormatGenericException(e));
+                    displayManager.AddLogEntry(e);
                 }
             }
         }
@@ -786,6 +762,10 @@ namespace EgsEsExtension
             private static readonly int iBarSegmentCount = Settings.GetValue<int>(Settings.Key.TextFormat_BarSegmentCount);
             private static readonly double dFluidsWarningLevel = Settings.GetValue<double>(Settings.Key.CompareLevel_TanksEmpty_Warning);
             private static readonly double dFluidsCriticalLevel = Settings.GetValue<double>(Settings.Key.CompareLevel_TanksEmpty_Critical);
+            private static readonly double dPowerWarningLevel = Settings.GetValue<double>(Settings.Key.CompareLevel_Power_Warning);
+            private static readonly double dPowerCriticalLevel = Settings.GetValue<double>(Settings.Key.CompareLevel_Power_Critical);
+            private static readonly double dShieldWarningLevel = Settings.GetValue<double>(Settings.Key.CompareLevel_Shield_Warning);
+            private static readonly double dShieldCriticalLevel = Settings.GetValue<double>(Settings.Key.CompareLevel_Shield_Critical);
             private static readonly double dDamageWarningLevel = Settings.GetValue<double>(Settings.Key.CompareLevel_Damage_Warning);
             private static readonly double dDamageCriticalLevel = Settings.GetValue<double>(Settings.Key.CompareLevel_Damage_Critical);
             private static readonly double dBoxFillWarningLevel = Settings.GetValue<double>(Settings.Key.CompareLevel_BoxFill_Warning);
@@ -809,7 +789,7 @@ namespace EgsEsExtension
                 try
                 {
                     // add Headline
-                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_StatusL));
+                    displayManager.SetFormattedHeadline(Locales.GetValue(lng, Locales.Key.Headline_Main_StatusL));
                     // Settings load
                     String sItemStructureFile = Settings.GetValue<String>(Settings.Key.FileName_ItemStructureTree);
                     if (!ItemGroups.Init(root, sItemStructureFile))
@@ -885,13 +865,21 @@ namespace EgsEsExtension
                         tank = E.S.PentaxidTank;
                         displayManager.AddBar(Locales.GetValue(lng, Locales.Key.Headline_StatusL_PentaxidBar),
                             tank.Content, tank.Capacity, true, iBarSegmentCount, dFluidsWarningLevel, dFluidsCriticalLevel);
+                        displayManager.AddBlankLine();
+                        dLevel = GenericMethods.GetPowerLevel(CsRoot, E.S);
+                        displayManager.AddBar(Locales.GetValue(lng, Locales.Key.Headline_StatusL_PowerBar),
+                            dLevel, 1, false, iBarSegmentCount, dPowerWarningLevel, dPowerCriticalLevel);
+                        dLevel = GenericMethods.GetShieldLevel(CsRoot, E.S);
+                        displayManager.AddBar(Locales.GetValue(lng, Locales.Key.Headline_StatusL_ShieldBar),
+                            dLevel, 1, true, iBarSegmentCount, dShieldWarningLevel, dShieldCriticalLevel);
+                        displayManager.AddBar(Locales.GetValue(lng, Locales.Key.Headline_StatusL_DamageBar),
+                            E.S.DamageLevel, 1, false, 15, dDamageWarningLevel, dDamageCriticalLevel);
+                        displayManager.AddBlankLine();
                         dLevel = GenericMethods.ComputeItemCompletenessLevel(CsRoot, E,
                             settings.GetParameterValue<String>(CargoManagementTags.SafetyStockAmmoHeadlineTag),
                             settings.GetSettingsTable<int>(CargoManagementTags.SafetyStockAmmoHeadlineTag), out _);
                         displayManager.AddBar(Locales.GetValue(lng, Locales.Key.Headline_StatusL_AmmoBar),
                             dLevel, true, iBarSegmentCount, dBoxEmptyWarningLevel, dBoxEmptyCriticalLevel);
-                        displayManager.AddBar(Locales.GetValue(lng, Locales.Key.Headline_StatusL_DamageBar),
-                            E.S.DamageLevel, 1, false, 15, dDamageWarningLevel, dDamageCriticalLevel);
                         dLevel = GenericMethods.ComputeContainerUsage(CsRoot, E, "*", true);
                         displayManager.AddBar(Locales.GetValue(lng, Locales.Key.Headline_StatusL_CargoBar),
                             dLevel, false, iBarSegmentCount, dBoxFillWarningLevel, dBoxFillCriticalLevel);
@@ -927,7 +915,7 @@ namespace EgsEsExtension
                 }
                 catch (Exception e)
                 {
-                    displayManager.AddLogEntry(GenericMethods.FormatGenericException(e));
+                    displayManager.AddLogEntry(e);
                 }
             }
         }
@@ -937,8 +925,8 @@ namespace EgsEsExtension
             private static readonly int iBarSegmentCount = Settings.GetValue<int>(Settings.Key.TextFormat_BarSegmentCount);
             private static readonly double dFluidsWarningLevel = Settings.GetValue<double>(Settings.Key.CompareLevel_TanksEmpty_Warning);
             private static readonly double dFluidsCriticalLevel = Settings.GetValue<double>(Settings.Key.CompareLevel_TanksEmpty_Critical);
-            private static readonly double dDamageWarningLevel = Settings.GetValue<double>(Settings.Key.CompareLevel_Damage_Warning);
-            private static readonly double dDamageCriticalLevel = Settings.GetValue<double>(Settings.Key.CompareLevel_Damage_Critical);
+            private static readonly double dShieldWarningLevel = Settings.GetValue<double>(Settings.Key.CompareLevel_Shield_Warning);
+            private static readonly double dShieldCriticalLevel = Settings.GetValue<double>(Settings.Key.CompareLevel_Shield_Critical);
             private static readonly double dBoxEmptyWarningLevel = Settings.GetValue<double>(Settings.Key.CompareLevel_BoxEmpty_Warning);
             private static readonly double dBoxEmptyCriticalLevel = Settings.GetValue<double>(Settings.Key.CompareLevel_BoxEmpty_Critical);
             public static void Run(IScriptModData root, Locales.Language lng)
@@ -957,7 +945,7 @@ namespace EgsEsExtension
                 try
                 {
                     // add Headline
-                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_StatusS));
+                    displayManager.SetFormattedHeadline(Locales.GetValue(lng, Locales.Key.Headline_Main_StatusS));
                     // Settings load
                     deviceProcessors.ForEach(processor =>
                     {
@@ -994,13 +982,14 @@ namespace EgsEsExtension
                         tank = E.S.PentaxidTank;
                         displayManager.AddBar(Locales.GetValue(lng, Locales.Key.Headline_StatusS_PentaxidBar),
                             tank.Content, tank.Capacity, true, iBarSegmentCount, dFluidsWarningLevel, dFluidsCriticalLevel);
+                        dLevel = GenericMethods.GetShieldLevel(CsRoot, E.S);
+                        displayManager.AddBar(Locales.GetValue(lng, Locales.Key.Headline_StatusS_ShieldBar),
+                            dLevel, 1, true, iBarSegmentCount, dShieldWarningLevel, dShieldCriticalLevel);
                         dLevel = GenericMethods.ComputeItemCompletenessLevel(CsRoot, E,
                             settings.GetParameterValue<String>(CargoManagementTags.SafetyStockAmmoHeadlineTag),
                             settings.GetSettingsTable<int>(CargoManagementTags.SafetyStockAmmoHeadlineTag), out _);
                         displayManager.AddBar(Locales.GetValue(lng, Locales.Key.Headline_StatusS_AmmoBar),
                             dLevel, true, iBarSegmentCount, dBoxEmptyWarningLevel, dBoxEmptyCriticalLevel);
-                        displayManager.AddBar(Locales.GetValue(lng, Locales.Key.Headline_StatusS_DamageBar),
-                            E.S.DamageLevel, 1, false, iBarSegmentCount, dDamageWarningLevel, dDamageCriticalLevel);
                         displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedDataComputation)));
                     }
                     else
@@ -1033,7 +1022,7 @@ namespace EgsEsExtension
                 }
                 catch (Exception e)
                 {
-                    displayManager.AddLogEntry(GenericMethods.FormatGenericException(e));
+                    displayManager.AddLogEntry(e);
                 }
             }
         }
@@ -1062,7 +1051,7 @@ namespace EgsEsExtension
                 try
                 {
                     // add Headline
-                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_CargoSorter));
+                    displayManager.SetFormattedHeadline(Locales.GetValue(lng, Locales.Key.Headline_Main_CargoSorter));
                     // Settings load
                     String sItemStructureFile = Settings.GetValue<String>(Settings.Key.FileName_ItemStructureTree);
                     if (!ItemGroups.Init(root, sItemStructureFile))
@@ -1077,18 +1066,39 @@ namespace EgsEsExtension
                     if (settings.ReadInSettingsTable(Locales.GetValue(lng, Locales.Key.SettingsTableDeviceName)))
                     {
                         displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedSettingsReadIn)));
+
                         // refill tanks
+                        List<KeyValuePair<String, String>> refillSourceList = settings.GetSafetyStockContainers(true);
                         int? iFuelLimit = settings.GetParameterValue<int?>(CargoManagementTags.FluidLevelTag_Fuel);
                         int? iOxygenLimit = settings.GetParameterValue<int?>(CargoManagementTags.FluidLevelTag_Oxygen);
                         int? iPentaxidLimit = settings.GetParameterValue<int?>(CargoManagementTags.FluidLevelTag_Pentaxid);
-                        CsRoot.Items(E.S, "*").ForEach(item =>
+                        int iFilledFuel = 0;
+                        int iFilledOxygen = 0;
+                        int iFilledPentaxid = 0;
+                        refillSourceList.ForEach(container =>
                         {
-                            if (iFuelLimit != null) { CsRoot.Fill(item, E.S, StructureTankType.Fuel, iFuelLimit); }
-                            if (iOxygenLimit != null) { CsRoot.Fill(item, E.S, StructureTankType.Oxygen, iOxygenLimit); }
-                            if (iPentaxidLimit != null) { CsRoot.Fill(item, E.S, StructureTankType.Pentaxid, iPentaxidLimit); }
+                            CsRoot.Items(E.S, container.Value).ForEach(item =>
+                            {
+                                if (iFuelLimit != null) { iFilledFuel += CsRoot.Fill(item, E.S, StructureTankType.Fuel, iFuelLimit).Sum(itemInfo => itemInfo.Count); }
+                                if (iOxygenLimit != null) { iFilledOxygen += CsRoot.Fill(item, E.S, StructureTankType.Oxygen, iOxygenLimit).Sum(itemInfo => itemInfo.Count); }
+                                if (iPentaxidLimit != null) { iFilledPentaxid += CsRoot.Fill(item, E.S, StructureTankType.Pentaxid, iPentaxidLimit).Sum(itemInfo => itemInfo.Count); }
+                            });
                         });
-                        displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedFluidRefill)));
-                        // box refilling/safety stock
+                        if (refillSourceList.Any(container => CsRoot.Devices(E.S, container.Value).Count() > 0))
+                        {
+                            displayManager.AddLogEntry(String.Format("- {0}: {1} / {2} / {3}",
+                                Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedFluidRefill),
+                                iFilledFuel, iFilledOxygen, iFilledPentaxid));
+                        }
+                        else
+                        {
+                            displayManager.AddLogEntry(String.Format("- {0}: {1}",
+                                Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedFluidRefill),
+                                Locales.GetValue(lng, Locales.Key.Text_ErrorMessage_SafetyStockContainerNotFound)
+                                ));
+                        }
+                        
+                        // refilling safety stock
                         int iItemCount = 0;
                         String sSourceBox = String.Join(sBoxSeperator,
                             settings.GetParameterValue<String>(CargoManagementTags.ContainerTag_Input),
@@ -1107,6 +1117,7 @@ namespace EgsEsExtension
                             });
                             displayManager.AddLogEntry(String.Format("- {0}: {1}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedSafetyStockRefill), container.Value));
                         });
+
                         // inputbox cargo sorting
                         String sTargetBoxName;
                         sSourceBox = settings.GetParameterValue<String>(CargoManagementTags.ContainerTag_Input);
@@ -1128,12 +1139,14 @@ namespace EgsEsExtension
                             });
                         }
                         displayManager.AddLogEntry(String.Format("- {0}", Locales.GetValue(lng, Locales.Key.Text_CpuLog_FinishedCargoSorting)));
+                        
                         // calculate remaining cargo space
                         String sContainerNames = String.Join(",", settings.GetParameterValue<String>(CargoManagementTags.ContainerTag_Output),
                             settings.GetParameterValue<String>(CargoManagementTags.ContainerTag_SafetySource));
                         double dLevel = GenericMethods.ComputeContainerUsage(CsRoot, E, sContainerNames, true);
                         displayManager.AddBar(Locales.GetValue(lng, Locales.Key.Headline_CargoSorter_CargoBar),
                             dLevel, false, iBarSegmentCount, dBoxFillWarningLevel, dBoxFillCriticalLevel);
+                        
                         // calculate resupply progress
                         List<KeyValuePair<string, int>> missingItems = new List<KeyValuePair<string, int>>();
                         int iContainerCount = 0;
@@ -1189,7 +1202,7 @@ namespace EgsEsExtension
                 }
                 catch (Exception e)
                 {
-                    displayManager.AddLogEntry(GenericMethods.FormatGenericException(e));
+                    displayManager.AddLogEntry(e);
                 }
             }
         }
@@ -1213,7 +1226,7 @@ namespace EgsEsExtension
                 try
                 {
                     // add Headline
-                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_BoxFill));
+                    displayManager.SetFormattedHeadline(Locales.GetValue(lng, Locales.Key.Headline_Main_BoxFill));
                     // load setting
                     String sItemStructureFile = Settings.GetValue<String>(Settings.Key.FileName_ItemStructureTree);
                     if (!ItemGroups.Init(root, sItemStructureFile))
@@ -1366,7 +1379,7 @@ namespace EgsEsExtension
                 }
                 catch (Exception e)
                 {
-                    displayManager.AddLogEntry(GenericMethods.FormatGenericException(e));
+                    displayManager.AddLogEntry(e);
                 }
             }
         }
@@ -1390,7 +1403,7 @@ namespace EgsEsExtension
                 try
                 {
                     // add Headline
-                    GenericMethods.SetFormattedHeadline(displayManager, Locales.GetValue(lng, Locales.Key.Headline_Main_BoxPurge));
+                    displayManager.SetFormattedHeadline(Locales.GetValue(lng, Locales.Key.Headline_Main_BoxPurge));
                     // laod setting
                     String sItemStructureFile = Settings.GetValue<String>(Settings.Key.FileName_ItemStructureTree);
                     if (!ItemGroups.Init(root, sItemStructureFile))
@@ -1501,7 +1514,7 @@ namespace EgsEsExtension
                 }
                 catch (Exception e)
                 {
-                    displayManager.AddLogEntry(GenericMethods.FormatGenericException(e));
+                    displayManager.AddLogEntry(e);
                 }
             }
         }
@@ -1546,7 +1559,7 @@ namespace EgsEsExtension
                     }
                     catch (Exception e)
                     {
-                        displayManager.AddLogEntry(GenericMethods.FormatGenericException(e));
+                        displayManager.AddLogEntry(e);
                     }
                 }
             }
@@ -1849,7 +1862,7 @@ namespace EgsEsExtension
             {
                 value = default;
                 bool bResult = false;
-                if (sParameter != null && !sParameter.Equals(""))
+                if (!String.IsNullOrEmpty(sParameter))
                 {
                     TypeConverter converter = TypeDescriptor.GetConverter(typeof(T));
                     if (converter != null)
@@ -1884,58 +1897,76 @@ namespace EgsEsExtension
             public String GetContainerNameByItemId(int iItemId)
             {
                 // das geht besser/stabiler/wartungsfreundlicher/plausibler, sobald die api jemals eine abrufbare ingame gruppen vererbungsstruktur für items hergibt
-                String sResult = null;
-                String sTargetBoxTag = null;
+                String sTargetContainerTag = null;
                 ItemGroups.GetAllGroupsById(iItemId)?.ForEach(sGroup =>
                 {
-                    if (sTargetBoxTag != null) return;
+                    if (sTargetContainerTag != null) return;
                     switch (sGroup)
                     {
-                        case ItemGroups.Ores: sTargetBoxTag = CargoManagementTags.ContainerTag_Ore; break;
-                        case ItemGroups.Ingots: sTargetBoxTag = CargoManagementTags.ContainerTag_Ingot; break;
-                        case ItemGroups.Components: sTargetBoxTag = CargoManagementTags.ContainerTag_Component; break;
+                        case ItemGroups.Ores: sTargetContainerTag = CargoManagementTags.ContainerTag_Ore; break;
+                        case ItemGroups.Ingots: sTargetContainerTag = CargoManagementTags.ContainerTag_Ingot; break;
+                        case ItemGroups.Components: sTargetContainerTag = CargoManagementTags.ContainerTag_Component; break;
                         case ItemGroups.StructureBlocksMulti:
-                        case ItemGroups.StructureBlocksL: sTargetBoxTag = CargoManagementTags.ContainerTag_BlockL; break;
+                        case ItemGroups.StructureBlocksL: sTargetContainerTag = CargoManagementTags.ContainerTag_BlockL; break;
                         case ItemGroups.WingsS:
-                        case ItemGroups.StructureBlocksS: sTargetBoxTag = CargoManagementTags.ContainerTag_BlockS; break;
-                        case ItemGroups.Medicines: sTargetBoxTag = CargoManagementTags.ContainerTag_Medic; break;
-                        case ItemGroups.Foods: sTargetBoxTag = CargoManagementTags.ContainerTag_Food; break;
-                        case ItemGroups.Ingredients: sTargetBoxTag = CargoManagementTags.ContainerTag_Ingredient; break;
-                        case ItemGroups.Sprouts: sTargetBoxTag = CargoManagementTags.ContainerTag_Sprout; break;
+                        case ItemGroups.StructureBlocksS: sTargetContainerTag = CargoManagementTags.ContainerTag_BlockS; break;
+                        case ItemGroups.Medicines: sTargetContainerTag = CargoManagementTags.ContainerTag_Medic; break;
+                        case ItemGroups.Foods: sTargetContainerTag = CargoManagementTags.ContainerTag_Food; break;
+                        case ItemGroups.Ingredients: sTargetContainerTag = CargoManagementTags.ContainerTag_Ingredient; break;
+                        case ItemGroups.Sprouts: sTargetContainerTag = CargoManagementTags.ContainerTag_Sprout; break;
                         case ItemGroups.Armor:
                         case ItemGroups.ToolsPlaceable:
-                        case ItemGroups.ToolsPlayer: sTargetBoxTag = CargoManagementTags.ContainerTag_Tool; break;
-                        case ItemGroups.ArmorMods: sTargetBoxTag = CargoManagementTags.ContainerTag_ArmorMod; break;
+                        case ItemGroups.ToolsPlayer: sTargetContainerTag = CargoManagementTags.ContainerTag_Tool; break;
+                        case ItemGroups.ArmorMods: sTargetContainerTag = CargoManagementTags.ContainerTag_ArmorMod; break;
                         case ItemGroups.DevicesMulti:
-                        case ItemGroups.DevicesL: sTargetBoxTag = CargoManagementTags.ContainerTag_DeviceL; break;
-                        case ItemGroups.DevicesS: sTargetBoxTag = CargoManagementTags.ContainerTag_DeviceS; break;
-                        case ItemGroups.WeaponsPlayer: sTargetBoxTag = CargoManagementTags.ContainerTag_WeaponPlayer; break;
-                        case ItemGroups.AmmoAll: sTargetBoxTag = CargoManagementTags.ContainerTag_Ammo; break;
-                        case ItemGroups.Refills: sTargetBoxTag = CargoManagementTags.ContainerTag_Refills; break;
-                        case ItemGroups.Treasures: sTargetBoxTag = CargoManagementTags.ContainerTag_Treasure; break;
+                        case ItemGroups.DevicesL: sTargetContainerTag = CargoManagementTags.ContainerTag_DeviceL; break;
+                        case ItemGroups.DevicesS: sTargetContainerTag = CargoManagementTags.ContainerTag_DeviceS; break;
+                        case ItemGroups.WeaponsPlayer: sTargetContainerTag = CargoManagementTags.ContainerTag_WeaponPlayer; break;
+                        case ItemGroups.AmmoAll: sTargetContainerTag = CargoManagementTags.ContainerTag_Ammo; break;
+                        case ItemGroups.Refills: sTargetContainerTag = CargoManagementTags.ContainerTag_Refills; break;
+                        case ItemGroups.Treasures: sTargetContainerTag = CargoManagementTags.ContainerTag_Treasure; break;
                         default: break;
                     }
                 });
-                if (sTargetBoxTag != null)
+                if (!String.IsNullOrEmpty(sTargetContainerTag))
                 {
-                    String sTargetBoxName = GetParameterValue<String>(sTargetBoxTag);
-                    if (sTargetBoxName != null)
+                    if (TryGetContainerName(sTargetContainerTag, out String sTargetContainerName))
                     {
-                        if (CsRoot.Devices(E.S, sTargetBoxName).Count() > 0)
-                        {
-                            sResult = sTargetBoxName;
-                        }
-                        else
-                        {
-                            unknownBoxesTable.Add(new KeyValuePair<String, String>(sTargetBoxName, Locales.GetValue(Language, Locales.Key.Text_ErrorMessage_DeviceNotFound)));
-                        }
+                        return sTargetContainerName;
                     }
                 }
                 else
                 {
                     unknownItemsTable.Add(new KeyValuePair<String, String>(iItemId.ToString(), CsRoot.I18n(iItemId)));
                 }
-                return sResult;
+                return null;
+            }
+            public String GetContainerNameByTag(String sContainerTagName, bool bNoErrorTracking = false)
+            {
+                if (!String.IsNullOrEmpty(sContainerTagName))
+                {
+                    if (TryGetContainerName(sContainerTagName, out String sTargetContainerName, bNoErrorTracking))
+                    {
+                        return sTargetContainerName;
+                    }
+                }
+                return null;
+            }
+            private bool TryGetContainerName(String sContainerTagName, out String sContainerName, bool bNoErrorTracking = false)
+            {
+                sContainerName = GetParameterValue<String>(sContainerTagName, bNoErrorTracking);
+                if (!String.IsNullOrEmpty(sContainerName))
+                {
+                    if (CsRoot.Devices(E.S, sContainerName).Count() > 0)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        unknownBoxesTable.Add(new KeyValuePair<String, String>(sContainerName, Locales.GetValue(Language, Locales.Key.Text_ErrorMessage_DeviceNotFound)));
+                    }
+                }
+                return false;
             }
             public List<KeyValuePair<String, String>> GetFaultyParameters()
             {
@@ -1949,10 +1980,13 @@ namespace EgsEsExtension
             {
                 return unknownItemsTable;
             }
-            public List<KeyValuePair<String, String>> GetSafetyStockContainers()
+            public List<KeyValuePair<String, String>> GetSafetyStockContainers(bool bWithoutAmmo = false)
             {
                 List<KeyValuePair<String, String>> containerList = new List<KeyValuePair<String, String>>();
-                CompleteSettingsTable.Where(entry => entry.Key.Contains(CargoManagementTags.SafetyStockTag))?.ForEach(entry =>
+                CompleteSettingsTable.Where(entry => bWithoutAmmo
+                    ? entry.Key.Equals(CargoManagementTags.SafetyStockTag)
+                    : entry.Key.Contains(CargoManagementTags.SafetyStockTag)
+                    )?.ForEach(entry =>
                 {
                     containerList.Add(entry);
                 });
@@ -2329,6 +2363,9 @@ namespace EgsEsExtension
         public static class GenericMethods
         {
             private const Char cArgumentSeperator = ':';
+            private const string sAttributeTagVolume = "Volume";
+            private const string sAttributeTagShieldMaxValue = "ShieldCapacity";
+
             public static String[] SplitArguments(String sArgs)
             {
                 return sArgs.Split(cArgumentSeperator);
@@ -2349,7 +2386,7 @@ namespace EgsEsExtension
                         dTempCapacity = 0;
                         container.GetContent().ForEach(item =>
                         {
-                            oVolume = CsRoot.ConfigFindAttribute(item.id, "Volume");
+                            oVolume = CsRoot.ConfigFindAttribute(item.id, sAttributeTagVolume);
                             if (oVolume != null && double.TryParse(oVolume.ToString(), out double dVolume))
                             {
                                 dTempCapacity += item.count * dVolume;
@@ -2423,16 +2460,27 @@ namespace EgsEsExtension
             {
                 return CsRoot.Devices(vessel.S, "*").Where(predicate: device => ItemGroups.GetIdListByGroup(sGroupTags)?.Contains(device.Id) == true).ToList();
             }
-            public static String FormatGenericException(Exception e)
+            public static bool TryGetShieldMaxValue(ICsScriptFunctions CsRoot, IStructureData vessel, out double dShieldMaxValue)
             {
-                return String.Format("{0}Exception:{0}Msg: {1}{0}Inner: {2}{0}Source: {3}{0}Target: {4}{0}Data: {5}{0}Stack: {6}", 
-                    Environment.NewLine, e.Message, e.InnerException, e.Source, e.TargetSite, e.Data, e.StackTrace);
+                dShieldMaxValue = -1;
+
+                List<int> shieldDeviceIds = ItemGroups.GetIdListByGroup(ItemGroups.ShieldsS, ItemGroups.ShieldsL);
+                List<IBlockData> shieldDevices = CsRoot.Devices(vessel, "*").Where(device => shieldDeviceIds.Any(id => id == device.Id)).ToList();
+                if (shieldDevices.Count < 1) { return false; }
+                
+                object oShieldMaxValue = shieldDevices.Min(device => CsRoot.ConfigFindAttribute(device.Id, sAttributeTagShieldMaxValue));
+                return double.TryParse(Convert.ToString(oShieldMaxValue), out dShieldMaxValue);
             }
-            public static void SetFormattedHeadline(DisplayViewManager displayManager, String sHeadline)
+            public static double GetShieldLevel(ICsScriptFunctions CsRoot, IStructureData vessel)
             {
-                displayManager.AddHeadline(String.Format("{0}:" , sHeadline));
-                displayManager.AddHeadline(String.Format("Update: {0}", DateTime.Now));
-                displayManager.AddHeadline("");
+                if (!vessel.IsShieldActive) { return 0; }
+                if (!GenericMethods.TryGetShieldMaxValue(CsRoot, vessel, out double dMaxShieldValue) || dMaxShieldValue == 0) { return 0; }
+                return vessel.ShieldLevel / dMaxShieldValue;
+            }
+            public static double GetPowerLevel(ICsScriptFunctions CsRoot, IStructureData vessel)
+            {
+                if (!vessel.IsPowerd) { return 0; }
+                return vessel.PowerConsumption / (double)vessel.PowerOutCapacity;
             }
         }
     }
@@ -2498,6 +2546,13 @@ namespace EgsEsExtension
                 sStructureView_InnerBlockSpacing = Locales.GetValue(lng, Locales.Key.Symbol_StatHll_InnerBlockSpacing);
                 sStructureView_NoBlockSpacing = Locales.GetValue(lng, Locales.Key.Symbol_StatHll_NoBlockSpacing);
             }
+
+            public void SetFormattedHeadline(String sHeadline)
+            {
+                AddHeadline(String.Format("{0}:", sHeadline));
+                AddHeadline(String.Format("Update: {0}", DateTime.Now));
+                AddHeadline("");
+            }
             public void AddStructureView(double?[][][] dStructDamageData, StructureViews eView)
             {
                 String sName;
@@ -2509,6 +2564,13 @@ namespace EgsEsExtension
                 }
                 DisplayElement element = new DisplayElement(ComputeHeadLine(sName), dStructDamageData, eView);
                 infoElementList.Add(element);
+            }
+            public void AddBlankLine(int count = 1)
+            {
+                for(int i = 0; i<count; i++)
+                {
+                    infoElementList.Add(new DisplayElement());
+                }
             }
             public void AddBar(String sName, double dLevelAct, double dLevelMax, bool bInversColor, int iSegmentCount, double dWarningLevel, double dCriticalLevel)
             {
@@ -2616,6 +2678,12 @@ namespace EgsEsExtension
             {
                 return infoDisplaysList.Select(lcdSet => lcdSet.LCDDisplayTable.Count).Max();
             }
+            public void AddLogEntry(Exception e)
+            {
+                String sEntry = String.Format("{0}Exception:{0}Msg: {1}{0}Inner: {2}{0}Source: {3}{0}Target: {4}{0}Data: {5}{0}Stack: {6}",
+                    Environment.NewLine, e.Message, e.InnerException, e.Source, e.TargetSite, e.Data, e.StackTrace);
+                AddLogEntry(sEntry);
+            }
             public void AddLogEntry(String sEntry)
             {
                 AppendDisplayText(logDisplaysList, String.Format("{0}{1}", Environment.NewLine, sEntry));
@@ -2662,7 +2730,10 @@ namespace EgsEsExtension
                         }
                         if (!iDisplaySelector.HasValue || iLcdGroupCounter == iDisplaySelector.Value)
                         {
-                            iLineCounter = AddDisplayLine(displayLines, iLcdGroupCounter, iLineCounter, element.OutputHeader, sLineIndent);
+                            if (element.OutputHeader != null)
+                            {
+                                iLineCounter = AddDisplayLine(displayLines, iLcdGroupCounter, iLineCounter, element.OutputHeader, sLineIndent);
+                            }
                             element.OutputBody?.ForEach(body =>
                             {
                                 iLineCounter = AddDisplayLine(displayLines, iLcdGroupCounter, iLineCounter, body, sLineIndent);
@@ -2903,11 +2974,21 @@ namespace EgsEsExtension
             {
                 public String OutputHeader { get; private set; }
                 public List<String> OutputBody { get; private set; }
-                public int MaxWidth { get; private set; } = 0;
-                public int LineCount { get; private set; } = 0;
                 public ElementTypes Type { get; private set; }
                 public StructureViews StructureView { get; private set; }
                 public double?[][][] StructureData { get; private set; }
+
+                public int MaxWidth { get; private set; } = 0;
+                public int LineCount { get; private set; } = 0;
+
+                public DisplayElement()
+                {
+                    Type = ElementTypes.eBlankLine;
+                    OutputHeader = null;
+                    OutputBody = null;
+                    StructureView = StructureViews.eNotDefined;
+                    StructureData = null;
+                }
                 public DisplayElement(ElementTypes eElementType, String sOutputHeader, params String[] outputBodies)
                 {
                     Type = eElementType;
@@ -2926,6 +3007,7 @@ namespace EgsEsExtension
                     StructureView = eView;
                     StructureData = dStructDamageData;
                 }
+                
                 private void ComputeWidth()
                 {
                     double dFactor;
@@ -3005,7 +3087,8 @@ namespace EgsEsExtension
                 eState,
                 eSimpleInfo,
                 eTableInfo,
-                eStructureView
+                eStructureView,
+                eBlankLine,
             }
             public enum StructureViews
             {
@@ -3049,8 +3132,10 @@ namespace EgsEsExtension
                 Headline_StatusL_FuelBar,
                 Headline_StatusL_OxygenBar,
                 Headline_StatusL_PentaxidBar,
-                Headline_StatusL_AmmoBar,
+                Headline_StatusL_PowerBar,
+                Headline_StatusL_ShieldBar,
                 Headline_StatusL_DamageBar,
+                Headline_StatusL_AmmoBar,
                 Headline_StatusL_CargoBar,
                 Headline_StatusL_ShieldState,
                 Headline_StatusL_TurretState,
@@ -3064,7 +3149,7 @@ namespace EgsEsExtension
                 Headline_StatusS_OxygenBar,
                 Headline_StatusS_PentaxidBar,
                 Headline_StatusS_AmmoBar,
-                Headline_StatusS_DamageBar,
+                Headline_StatusS_ShieldBar,
 
                 Headline_BoxFill_Table_VesselsRemaining,
                 Headline_BoxFill_Table_ItemsMissing,
@@ -3156,13 +3241,7 @@ namespace EgsEsExtension
                 Text_StatDock_State_Off,
                 Text_StatDock_State_On,
                 Text_StatDock_ItemText_Energy,
-                Text_StatDock_ItemText_Fuel,
-                Text_StatDock_ItemText_Oxygen,
-                Text_StatDock_ItemText_Pentaxid,
-                Text_StatDock_ItemText_Cargo,
-                Text_StatDock_ItemText_Damage,
-                Text_StatDock_ItemText_Container,
-                Text_StatDock_ItemText_Weapon,
+                Text_StatDock_ItemText_SizeClass,
 
                 Text_ErrorMessage_Unknown,
                 Text_ErrorMessage_SettingsTableMissing,
@@ -3174,6 +3253,7 @@ namespace EgsEsExtension
                 Text_ErrorMessage_IsOffline,
                 Text_ErrorMessage_OutputContainerNotFound,
                 Text_ErrorMessage_InputContainerNotFound,
+                Text_ErrorMessage_SafetyStockContainerNotFound,
 
                 Text_ErrorMessage_StatusL_ShieldMissing,
                 Text_ErrorMessage_StatusL_TurretMissing,
@@ -3248,8 +3328,10 @@ namespace EgsEsExtension
                 { Key.Headline_StatusL_FuelBar, "Treibstoff" },
                 { Key.Headline_StatusL_OxygenBar, "Sauerstoff" },
                 { Key.Headline_StatusL_PentaxidBar, "Pentaxid" },
-                { Key.Headline_StatusL_AmmoBar, "Munition" },
+                { Key.Headline_StatusL_PowerBar, "Energielevel" },
+                { Key.Headline_StatusL_ShieldBar, "Schildlevel" },
                 { Key.Headline_StatusL_DamageBar, "Strukturschaden" },
+                { Key.Headline_StatusL_AmmoBar, "Munition" },
                 { Key.Headline_StatusL_CargoBar, "Belegte Frachtkapazität" },
                 { Key.Headline_StatusL_ShieldState, "Schildstatus" },
                 { Key.Headline_StatusL_TurretState, "Geschuetzstatus" },
@@ -3263,7 +3345,7 @@ namespace EgsEsExtension
                 { Key.Headline_StatusS_OxygenBar, "Sauerstoff" },
                 { Key.Headline_StatusS_PentaxidBar, "Pentaxid" },
                 { Key.Headline_StatusS_AmmoBar, "Munition" },
-                { Key.Headline_StatusS_DamageBar, "Strukturschaden" },
+                { Key.Headline_StatusS_ShieldBar, "Schildlevel" },
 
                 { Key.Headline_BoxFill_Table_VesselsRemaining, "Ausstehende Beladungsvorgänge" },
                 { Key.Headline_BoxFill_Table_ItemsMissing, "Unzureichende Frachtbereitstellung" },
@@ -3355,14 +3437,8 @@ namespace EgsEsExtension
 
                 { Key.Text_StatDock_State_Off, "Inaktiv" },
                 { Key.Text_StatDock_State_On, "Aktiv" },
-                { Key.Text_StatDock_ItemText_Energy, "Eng" },
-                { Key.Text_StatDock_ItemText_Fuel, "Ful" },
-                { Key.Text_StatDock_ItemText_Oxygen, "Oxy" },
-                { Key.Text_StatDock_ItemText_Pentaxid, "Pxd" },
-                { Key.Text_StatDock_ItemText_Cargo, "Frt" },
-                { Key.Text_StatDock_ItemText_Damage, "Sch" },
-                { Key.Text_StatDock_ItemText_Container, "Cnt" },
-                { Key.Text_StatDock_ItemText_Weapon, "Wfn" },
+                { Key.Text_StatDock_ItemText_Energy, "Energie" },
+                { Key.Text_StatDock_ItemText_SizeClass, "Klasse" },
 
                 { Key.Text_ErrorMessage_Unknown, "Undefinierter Fehler" },
                 { Key.Text_ErrorMessage_SettingsTableMissing, "Frachtverwaltungstabelle nicht gefunden" },
@@ -3374,6 +3450,7 @@ namespace EgsEsExtension
                 { Key.Text_ErrorMessage_IsOffline, "ist abgeschaltet" },
                 { Key.Text_ErrorMessage_OutputContainerNotFound, "Keine Ausgabe Container gefunden" },
                 { Key.Text_ErrorMessage_InputContainerNotFound, "Keine Annahme Container gefunden" },
+                { Key.Text_ErrorMessage_SafetyStockContainerNotFound, "Kein SafetyStock Container gefunden" },
 
                 { Key.Text_ErrorMessage_StatusL_ShieldMissing, "Kein Schildemitter gefunden" },
                 { Key.Text_ErrorMessage_StatusL_TurretMissing, "Kein Waffenturm gefunden" },
@@ -3448,8 +3525,10 @@ namespace EgsEsExtension
                 { Key.Headline_StatusL_FuelBar, "Fuellevel" },
                 { Key.Headline_StatusL_OxygenBar, "Oxygenlevel" },
                 { Key.Headline_StatusL_PentaxidBar, "Pentaxid" },
-                { Key.Headline_StatusL_AmmoBar, "Ammunition" },
+                { Key.Headline_StatusL_PowerBar, "Power level" },
+                { Key.Headline_StatusL_ShieldBar, "Shield level" },
                 { Key.Headline_StatusL_DamageBar, "Structure damage" },
+                { Key.Headline_StatusL_AmmoBar, "Ammunition" },
                 { Key.Headline_StatusL_CargoBar, "Occupied cargo capacity" },
                 { Key.Headline_StatusL_ShieldState, "Shield state" },
                 { Key.Headline_StatusL_TurretState, "Turret state" },
@@ -3463,7 +3542,7 @@ namespace EgsEsExtension
                 { Key.Headline_StatusS_OxygenBar, "Oxygenlevel" },
                 { Key.Headline_StatusS_PentaxidBar, "Pentaxid" },
                 { Key.Headline_StatusS_AmmoBar, "Ammunition" },
-                { Key.Headline_StatusS_DamageBar, "Structure damage" },
+                { Key.Headline_StatusS_ShieldBar, "Shield level" },
 
                 { Key.Headline_BoxFill_Table_VesselsRemaining, "Remaining refill processes" },
                 { Key.Headline_BoxFill_Table_ItemsMissing, "Not enough cargo" },
@@ -3554,14 +3633,8 @@ namespace EgsEsExtension
                 { Key.Text_StatDock_State_NoVessel, "None" },
                 { Key.Text_StatDock_State_Off, "Offline" },
                 { Key.Text_StatDock_State_On, "Online" },
-                { Key.Text_StatDock_ItemText_Energy, "Eng" },
-                { Key.Text_StatDock_ItemText_Fuel, "Ful" },
-                { Key.Text_StatDock_ItemText_Oxygen, "Oxy" },
-                { Key.Text_StatDock_ItemText_Pentaxid, "Pxd" },
-                { Key.Text_StatDock_ItemText_Cargo, "Crg" },
-                { Key.Text_StatDock_ItemText_Damage, "Dmg" },
-                { Key.Text_StatDock_ItemText_Container, "Cnt" },
-                { Key.Text_StatDock_ItemText_Weapon, "Wpn" },
+                { Key.Text_StatDock_ItemText_Energy, "Energy" },
+                { Key.Text_StatDock_ItemText_SizeClass, "Class" },
 
                 { Key.Text_ErrorMessage_Unknown, "Undefined Failure" },
                 { Key.Text_ErrorMessage_SettingsTableMissing, "Cargocontrol table not found" },
@@ -3573,6 +3646,7 @@ namespace EgsEsExtension
                 { Key.Text_ErrorMessage_IsOffline, "is offline" },
                 { Key.Text_ErrorMessage_OutputContainerNotFound, "Output container not found" },
                 { Key.Text_ErrorMessage_InputContainerNotFound, "Input container not found" },
+                { Key.Text_ErrorMessage_SafetyStockContainerNotFound, "SafetyStock container not found" },
 
                 { Key.Text_ErrorMessage_StatusL_ShieldMissing, "No shield device found" },
                 { Key.Text_ErrorMessage_StatusL_TurretMissing, "No Turret found" },
@@ -3659,7 +3733,7 @@ namespace EgsEsExtension
     {
         public static class Settings
         {
-            public static readonly String Version = "1.0.16";
+            public static readonly String Version = "1.0.20";
             public static readonly String Author = "Preston";
 
             public enum Key
@@ -3692,6 +3766,10 @@ namespace EgsEsExtension
                 FontSize_DefaultInfo,
                 FontSize_DefaultLog,
 
+                CompareLevel_Power_Warning,
+                CompareLevel_Power_Critical,
+                CompareLevel_Shield_Warning,
+                CompareLevel_Shield_Critical,
                 CompareLevel_Damage_Warning,
                 CompareLevel_Damage_Critical,
                 CompareLevel_BoxFill_Warning,
@@ -3748,6 +3826,10 @@ namespace EgsEsExtension
                 { Key.FontSize_DefaultInfo, "4" },
                 { Key.FontSize_DefaultLog, "3" },
 
+                { Key.CompareLevel_Power_Warning, "0,75" },
+                { Key.CompareLevel_Power_Critical, "0,9" },
+                { Key.CompareLevel_Shield_Warning, "0,6" },
+                { Key.CompareLevel_Shield_Critical, "0,8" },
                 { Key.CompareLevel_Damage_Warning, "0,5" },
                 { Key.CompareLevel_Damage_Critical, "0,75" },
                 { Key.CompareLevel_BoxFill_Warning, "0,65" },
@@ -3791,17 +3873,51 @@ namespace EgsEsExtension
     
     namespace Debug
     {
-        
-        public class BugBuster
-        {
-            private void TryAndError()
-            {
-                //ISoundPlayer jukebox;
+        using Locales = Locales.Locales;
+        using DisplayViewManager = DisplayViewManager.DisplayViewManager;
+        using GenericMethods = GenericMethods.GenericMethods;
+        using Settings = Settings.Settings;
 
-            }
-            public static void Run()
+        public static class BugBuster
+        {
+            public static void Run(IScriptModData root, Locales.Language lng)
             {
-                
+                const string sDebugProcessorName = "";
+                // with no processor name debugging is off
+                if (sDebugProcessorName.Equals(String.Empty)) { return; }
+
+                // Script Content Data and methods
+                ICsScriptFunctions CsRoot = root.CsRoot;
+                // entity (vessel) the script is executed for (cycles every vessel)
+                IEntityData E = root.E;
+                // playfield data the entity is on
+                IPlayfieldData P = root.P;
+
+                // without structure powered and without "processing device" the scrip should "sleep"
+                IBlockData[] deviceProcessors = CsRoot.Devices(E.S, sDebugProcessorName);
+                if (!E.S.IsPowerd || deviceProcessors == null || deviceProcessors.Count() < 1) { return; }
+
+                // prepare output for debugging
+                CsRoot.I18nDefaultLanguage = Locales.GetValue(lng, Locales.Key.ItemLanguage);
+                DisplayViewManager displayManager = new DisplayViewManager(CsRoot, E, lng);
+                displayManager.AddLogDisplays(sDebugProcessorName, Settings.Version, CsRoot.GetDevices<ILcd>(deviceProcessors));
+                try
+                {
+
+                    
+                    
+                    
+
+
+                    //E.Move(new UnityEngine.Vector3(0, 0, 0));
+
+
+
+                }
+                catch (Exception e)
+                {
+                    displayManager.AddLogEntry(e);
+                }
             }
         }
     }
