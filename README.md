@@ -175,9 +175,9 @@ Just copy the [template table](#settings-Table-Copy-Template) to the editor pane
                                         // all structure wide suitable items will be used to try to achive this amount
 
     FluidLevels:                        // headline for list of fuellevels
-    FuelLevel:90                        // refill level for fuel, all structur wide suitable items will be used to try to achive this percentage level
-    OxygenLevel:80                      // refill level for oxygen, all structur wide suitable items will be used to try to achive this percentage level
-    PentaxidLevel:100                   // refill level for pentaxid, all structur wide suitable items will be used to try to achive this percentage level
+    FuelLevel:90                        // refill level for fuel, all suitable items in SafetyStock Containers will be used to try to achive this percentage level
+    OxygenLevel:80                      // refill level for oxygen, all suitable items in SafetyStock Containers will be used to try to achive this percentage level
+    PentaxidLevel:100                   // refill level for pentaxid, all suitable items in SafetyStock Containers will be used to try to achive this percentage level
 
     Container:                          // headline for list of containers
     OutputBox:myBox*                    // CustomName of the box(es) which should be purged by near bases (CpuCvrPrg) or from which items shall be used to refill near vessels(CpuCvrFll)
