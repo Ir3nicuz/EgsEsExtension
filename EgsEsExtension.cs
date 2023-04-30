@@ -10,6 +10,7 @@ using EmpyrionScripting.CustomHelpers;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.ComponentModel;
+using System.Globalization;
 
 /* ##### Changelog #####
     Remind to change version number in Settings class! :)
@@ -38,6 +39,9 @@ using System.ComponentModel;
     2023-04-08: 1.0.18  -> changed: CpuCvrSrt now only uses SafetyStock Container to fill the tanks, not all containers (performance issue on structures with much containers)
     2023-04-08: 1.0.19  -> changed: CpuInfS replaced structure damage bar with shield level bar
     2023-04-08: 1.0.20  -> added:   CpuInfL added shield level bar and power level bar
+    2023-04-08: 1.0.21  -> fixed:   CpuInfL and CpuInfS shows shield level bar in red at most levels
+    2023-04-09: 1.0.22  -> fixed:   CsRoot.Move no longer needs max value per container -> removed pre divider
+    2023-04-30: 1.0.23  -> added:   The font size parameter of all Cpu's now considers floating point values
 */
 
 namespace EgsEsExtension
@@ -1035,7 +1039,7 @@ namespace EgsEsExtension
             private static readonly double dBoxFillCriticalLevel = Settings.GetValue<double>(Settings.Key.CompareLevel_BoxFill_Critical);
             private static readonly double dBoxEmptyWarningLevel = Settings.GetValue<double>(Settings.Key.CompareLevel_BoxEmpty_Warning);
             private static readonly double dBoxEmptyCriticalLevel = Settings.GetValue<double>(Settings.Key.CompareLevel_BoxEmpty_Critical);
-            private static readonly int iItemMovedPerTick = Settings.GetValue<int>(Settings.Key.TickCount_ItemsToSort);
+            private static readonly int iAllowedItemCountToMove = Settings.GetValue<int>(Settings.Key.TickCount_ItemsToSort);
             public static void Run(IScriptModData root, Locales.Language lng)
             {
                 // Script Content Data
@@ -1107,7 +1111,7 @@ namespace EgsEsExtension
                         {
                             settings.GetSettingsTable<int>(container).ForEach(item =>
                             {
-                                if (iItemCount < iItemMovedPerTick)
+                                if (iItemCount < iAllowedItemCountToMove)
                                 {
                                     if (GenericMethods.IntelligentItemMove(CsRoot, E, E, sSourceBox, container.Value, item) > 0)
                                     {
@@ -1125,7 +1129,7 @@ namespace EgsEsExtension
                         {
                             CsRoot.Items(E.S, sSourceBox).ForEach(item =>
                             {
-                                if (iItemCount < iItemMovedPerTick)
+                                if (iItemCount < iAllowedItemCountToMove)
                                 {
                                     sTargetBoxName = settings.GetContainerNameByItemId(item.Id);
                                     if (sTargetBoxName != null)
@@ -2360,6 +2364,8 @@ namespace EgsEsExtension
     {
         using ItemGroups = ItemGroups.ItemGroups;
         using DisplayViewManager = DisplayViewManager.DisplayViewManager;
+        using IContainer = Eleon.Modding.IContainer;
+
         public static class GenericMethods
         {
             private const Char cArgumentSeperator = ':';
@@ -2438,10 +2444,10 @@ namespace EgsEsExtension
                 String sItemName = item.Key;
                 int iItemValue = item.Value;
                 // input safety test
-                if (sSourceBoxName != null && !sSourceBoxName.Equals("") && sTargetBoxName != null && !sTargetBoxName.Equals("") && sItemName != null && !sItemName.Equals("") && iItemValue > 0)
+                if (!String.IsNullOrEmpty(sSourceBoxName) && !String.IsNullOrEmpty(sTargetBoxName) && !String.IsNullOrEmpty(sItemName) && iItemValue > 0)
                 {
                     // get all target containers by names
-                    Eleon.Modding.IContainer[] targetContainer = CsRoot.GetDevices<Eleon.Modding.IContainer>(CsRoot.Devices(targetVessel.S, sTargetBoxName));
+                    IContainer[] targetContainer = CsRoot.GetDevices<IContainer>(CsRoot.Devices(targetVessel.S, sTargetBoxName));
                     if (targetContainer != null && targetContainer.Count() > 0)
                     {
                         // get all items from all storage sources by its localized name
@@ -2449,7 +2455,7 @@ namespace EgsEsExtension
                         if (itemStack != null && itemStack.Count > 0)
                         {
                             //Items move and result calc
-                            IList<IItemMoveInfo> result = CsRoot.Move(itemStack, targetVessel.S, sTargetBoxName, (iItemValue / targetContainer.Count()));
+                            IList<IItemMoveInfo> result = CsRoot.Move(itemStack, targetVessel.S, sTargetBoxName, iItemValue);
                             if (result.Count() > 0) { iMovedItemCount = result.FirstOrDefault().Count; }
                         }
                     }
@@ -2526,8 +2532,8 @@ namespace EgsEsExtension
             private readonly String sStructureView_InnerBlockSpacing;
             private readonly String sStructureView_NoBlockSpacing;
 
-            private static readonly int iDefaultInfoFontSize = Settings.GetValue<int>(Settings.Key.FontSize_DefaultInfo);
-            private static readonly int iDefaultLogFontSize = Settings.GetValue<int>(Settings.Key.FontSize_DefaultLog);
+            private static readonly double dDefaultInfoFontSize = Settings.GetValue<double>(Settings.Key.FontSize_DefaultInfo);
+            private static readonly double dDefaultLogFontSize = Settings.GetValue<double>(Settings.Key.FontSize_DefaultLog);
 
             private static readonly double dCompareLevel_Damage_Warning = Settings.GetValue<double>(Settings.Key.CompareLevel_Damage_Warning);
             private static readonly double dCompareLevel_Damage_Critical = Settings.GetValue<double>(Settings.Key.CompareLevel_Damage_Critical);
@@ -2646,7 +2652,7 @@ namespace EgsEsExtension
             public void AddInfoDisplays(String[] sArgs)
             {
                 Dictionary<int, List<ILcd>> LCDDisplayTable = new Dictionary<int, List<ILcd>>();
-                int? iFontSize = null;
+                double? dFontSize = null;
                 int? iLineCount = null;
                 int? iViewOffset = null;
                 if (sArgs.Count() >= 2) {
@@ -2661,16 +2667,16 @@ namespace EgsEsExtension
                         lcdList.Add(CsRoot.GetDevices<ILcd>(lcdDevice).FirstOrDefault());
                     });
                 }
-                if (sArgs.Count() >= 3 && int.TryParse(sArgs[2], out int iTempSize) && iTempSize > 0) { iFontSize = iTempSize; }
+                if (sArgs.Count() >= 3 && double.TryParse(sArgs[2], NumberStyles.Any, CultureInfo.InvariantCulture, out double dTempSize) && dTempSize > 0) { dFontSize = dTempSize; }
                 if (sArgs.Count() >= 4 && int.TryParse(sArgs[3], out int iTempCount) && iTempCount > 0) { iLineCount = iTempCount; }
                 if (sArgs.Count() >= 5 && int.TryParse(sArgs[4], out int iTempViewOffset)) { iViewOffset = iTempViewOffset; }
-                DisplaySet newLcdSet = new DisplaySet(LCDDisplayTable, iDefaultInfoFontSize, iFontSize, iLineCount, iViewOffset);
+                DisplaySet newLcdSet = new DisplaySet(LCDDisplayTable, dDefaultInfoFontSize, dFontSize, iLineCount, iViewOffset);
                 infoDisplaysList.Add(newLcdSet);
             }
             public void AddLogDisplays(String sHeadline, String sVersion, ILcd[] lcds)
             {
                 Dictionary<int, List<ILcd>> LCDDisplayTable = new Dictionary<int, List<ILcd>> { { 0, lcds.ToList() } };
-                DisplaySet newLcdSet = new DisplaySet(LCDDisplayTable, iDefaultLogFontSize, null, null, null);
+                DisplaySet newLcdSet = new DisplaySet(LCDDisplayTable, dDefaultLogFontSize, null, null, null);
                 logDisplaysList.Add(newLcdSet);
                 SetDisplayText(newLcdSet, String.Format("{0} v{3} Log:{1}Update: {2}{1}", sHeadline, Environment.NewLine, DateTime.Now, sVersion));
             }
@@ -2701,7 +2707,7 @@ namespace EgsEsExtension
             {
                 Dictionary<int, Dictionary<int, String>> displayLines = new Dictionary<int, Dictionary<int, String>>();
                 String sLineIndent;
-                int iFontSize;
+                double dFontSize;
                 int iLineCount;
                 int iLineCounter;
                 int iColumnWidth;
@@ -2714,7 +2720,7 @@ namespace EgsEsExtension
                 {
                     iLcdGroupCount = lcdSet.LCDDisplayTable.Count;
                     iLcdGroupCounter = 0;
-                    iFontSize = lcdSet.FontSize;
+                    dFontSize = lcdSet.FontSize;
                     iLineCount = lcdSet.LineCount;
                     iLineCounter = 0;
                     iColumnWidth = 0;
@@ -2751,7 +2757,7 @@ namespace EgsEsExtension
                             else
                             {
                                 iLcdGroupCounter = 0;
-                                iActIndent += iFontSize * iColumnWidth;
+                                iActIndent += Convert.ToInt32(Math.Round(dFontSize * iColumnWidth));
                                 sLineIndent = String.Format("<indent={0}px>", iActIndent);
                                 iColumnWidth = 0;
                             }
@@ -2766,9 +2772,9 @@ namespace EgsEsExtension
                             bResult = true;
                             if (displayLines.TryGetValue(iLcdGroupCounter, out Dictionary<int, String> groupLines))
                             {
-                                SetDisplayText(lcdGroup, iFontSize, String.Join("", groupLines.OrderBy(line => line.Key).Select(line => line.Value)));
+                                SetDisplayText(lcdGroup, dFontSize, String.Join("", groupLines.OrderBy(line => line.Key).Select(line => line.Value)));
                             }
-                            else { SetDisplayText(lcdGroup, iFontSize, ""); }
+                            else { SetDisplayText(lcdGroup, dFontSize, ""); }
                         }
                         iLcdGroupCounter++;
                     });
@@ -2919,9 +2925,9 @@ namespace EgsEsExtension
                     SetDisplayText(lcdGroup.Value, lcdSet.FontSize, sText);
                 });
             }
-            private void SetDisplayText(List<ILcd> lcdList, int iFontSize, String sText)
+            private void SetDisplayText(List<ILcd> lcdList, double dFontSize, String sText)
             {
-                String sCombinedText = String.Format("<size={0}>{1}", iFontSize, sText);
+                String sCombinedText = String.Format("<size={0:0.0}>{1}", dFontSize, sText);
                 lcdList?.ForEach(lcd =>
                 {
                     lcd?.SetText(sCombinedText);
@@ -3043,14 +3049,14 @@ namespace EgsEsExtension
             private class DisplaySet
             {
                 public Dictionary<int, List<ILcd>> LCDDisplayTable { get; }
-                public int FontSize { get; }
+                public double FontSize { get; }
                 public int LineCount { get; }
                 public int StructureViewOffset { get; }
-                public DisplaySet(Dictionary<int, List<ILcd>> displayTable, int iDefaultFontSize, int? iFontSize, int? iLineCount, int? iStruvctureViewOffset)
+                public DisplaySet(Dictionary<int, List<ILcd>> displayTable, double dDefaultFontSize, double? dFontSize, int? iLineCount, int? iStruvctureViewOffset)
                 {
                     LCDDisplayTable = displayTable;
-                    if (iFontSize.HasValue) { FontSize = iFontSize.Value; }
-                    else { FontSize = iDefaultFontSize; }
+                    if (dFontSize.HasValue) { FontSize = dFontSize.Value; }
+                    else { FontSize = dDefaultFontSize; }
                     if (iLineCount.HasValue) { LineCount = iLineCount.Value; } 
                     else { LineCount = int.MaxValue; }
                     if (iStruvctureViewOffset.HasValue) { StructureViewOffset = iStruvctureViewOffset.Value; }
@@ -3733,7 +3739,7 @@ namespace EgsEsExtension
     {
         public static class Settings
         {
-            public static readonly String Version = "1.0.20";
+            public static readonly String Version = "1.0.23";
             public static readonly String Author = "Preston";
 
             public enum Key
@@ -3828,8 +3834,8 @@ namespace EgsEsExtension
 
                 { Key.CompareLevel_Power_Warning, "0,75" },
                 { Key.CompareLevel_Power_Critical, "0,9" },
-                { Key.CompareLevel_Shield_Warning, "0,6" },
-                { Key.CompareLevel_Shield_Critical, "0,8" },
+                { Key.CompareLevel_Shield_Warning, "0,4" },
+                { Key.CompareLevel_Shield_Critical, "0,2" },
                 { Key.CompareLevel_Damage_Warning, "0,5" },
                 { Key.CompareLevel_Damage_Critical, "0,75" },
                 { Key.CompareLevel_BoxFill_Warning, "0,65" },
@@ -3884,7 +3890,7 @@ namespace EgsEsExtension
             {
                 const string sDebugProcessorName = "";
                 // with no processor name debugging is off
-                if (sDebugProcessorName.Equals(String.Empty)) { return; }
+                if (String.IsNullOrEmpty(sDebugProcessorName)) { return; }
 
                 // Script Content Data and methods
                 ICsScriptFunctions CsRoot = root.CsRoot;
